@@ -25,8 +25,9 @@ SizeHolderTemplate.AnchorPoint = Vector2.new(0.5, 0.5)
 SizeHolderTemplate.BackgroundTransparency = 1
 SizeHolderTemplate.Name = SIZE_HOLDER_NAME
 
-local SizeIncreased: {[GuiObject]: UDim2?} = {}
-local SizeIterations: {[GuiObject]: number} = {}
+-- Weak keys to avoid retaining destroyed instances
+local SizeIncreased = setmetatable({} :: {[GuiObject]: UDim2?}, { __mode = "k" }) 
+local SizeIterations = setmetatable({} :: {[GuiObject]: number}, { __mode = "k" }) 
 
 local GuiEffects = {}
 GuiEffects.Tweener = Tweener
@@ -34,7 +35,7 @@ GuiEffects.Tweener = Tweener
 -- Functions
 local function GetSizeIteration(GuiObject: GuiObject): number
 	local CurrentIteration = SizeIterations[GuiObject]
-	if not CurrentIteration then
+	if CurrentIteration == nil then
 		SizeIterations[GuiObject] = 0
 		return 0
 	end
@@ -96,7 +97,6 @@ function GuiEffects.IncreaseSize(GuiObject: GuiObject, SizeScalar: number?, Sett
 	IncrementSizeIteration(GuiObject)
 
 	local ExistingSizeHolder = GetSizeHolder(GuiObject)
-
 	if NeedsSizeHolder(GuiObject) and not ExistingSizeHolder then
 		CreateSizeHolder(GuiObject)
 	end
@@ -126,7 +126,6 @@ function GuiEffects.DecreaseSize(GuiObject: GuiObject, DecreaseSizeTo: UDim2, Re
 	if not GuiObject.Parent then return end
 
 	local ExistingSizeHolder = GetSizeHolder(GuiObject)
-
 	if NeedsSizeHolder(GuiObject) and not ExistingSizeHolder then
 		CreateSizeHolder(GuiObject)
 	end

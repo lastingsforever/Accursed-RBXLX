@@ -15,14 +15,15 @@ export type InputConnection = {
 	Disconnect: (self: InputConnection) -> (),
 }
 
--- Variables
-local HoveringObjects: {[GuiObject]: boolean} = {}
+-- Variables (weak keys to avoid instance retention)
+local HoveringObjects = setmetatable({}:: {[GuiObject]: boolean?}, { __mode = "k" })
 local GuiInput = {}
 
 -- Functions
 function GuiInput.Connect(GuiObject: GuiObject, Callbacks: InputCallbacks): InputConnection
 	local Connections: {RBXScriptConnection} = {}
 
+	-- Hover enter
 	if Callbacks.OnEnter then
 		table.insert(Connections, GuiObject.MouseEnter:Connect(function()
 			HoveringObjects[GuiObject] = true
@@ -34,6 +35,7 @@ function GuiInput.Connect(GuiObject: GuiObject, Callbacks: InputCallbacks): Inpu
 		end))
 	end
 
+	-- Hover leave
 	if Callbacks.OnLeave then
 		table.insert(Connections, GuiObject.MouseLeave:Connect(function()
 			HoveringObjects[GuiObject] = nil
@@ -45,29 +47,29 @@ function GuiInput.Connect(GuiObject: GuiObject, Callbacks: InputCallbacks): Inpu
 		end))
 	end
 
+	-- Down
 	if Callbacks.OnDown then
 		table.insert(Connections, GuiObject.InputBegan:Connect(function(InputObject: InputObject)
-			if InputObject.UserInputType == Enum.UserInputType.MouseButton1 
+			if InputObject.UserInputType == Enum.UserInputType.MouseButton1
 				or InputObject.UserInputType == Enum.UserInputType.Touch then
 				Callbacks.OnDown()
 			end
 		end))
 	end
 
+	-- Up
 	if Callbacks.OnUp then
 		table.insert(Connections, GuiObject.InputEnded:Connect(function(InputObject: InputObject)
-			if InputObject.UserInputType == Enum.UserInputType.MouseButton1 
+			if InputObject.UserInputType == Enum.UserInputType.MouseButton1
 				or InputObject.UserInputType == Enum.UserInputType.Touch then
 				Callbacks.OnUp()
 			end
 		end))
 	end
 
-	if Callbacks.OnClick then
-		local Button = GuiObject :: GuiButton
-		if Button.Activated then
-			table.insert(Connections, Button.Activated:Connect(Callbacks.OnClick))
-		end
+	-- Click (safe)
+	if Callbacks.OnClick and GuiObject:IsA("GuiButton") then
+		table.insert(Connections, (GuiObject :: GuiButton).Activated:Connect(Callbacks.OnClick))
 	end
 
 	local Connection = {}

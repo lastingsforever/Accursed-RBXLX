@@ -28,6 +28,9 @@ return function()
 	
 	Handshake.ClientShake("PlayerFirstLoad")
 	
+	
+		
+
 	local MainMenu = ScreenGuiService.CreateScreenGui("MainMenu")
 	
 	MainMenu:Open()
