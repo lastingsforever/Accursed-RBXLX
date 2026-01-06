@@ -2,8 +2,6 @@
 -- Services
 local UserInputService = game:GetService("UserInputService")
 
--- Modules
-
 -- Types
 export type InputCallbacks = {
 	OnEnter: (() -> ())?,
@@ -17,23 +15,34 @@ export type InputConnection = {
 	Disconnect: (self: InputConnection) -> (),
 }
 
--- Constants
-
 -- Variables
+local HoveringObjects: {[GuiObject]: boolean} = {}
 local GuiInput = {}
-
-
 
 -- Functions
 function GuiInput.Connect(GuiObject: GuiObject, Callbacks: InputCallbacks): InputConnection
 	local Connections: {RBXScriptConnection} = {}
 
 	if Callbacks.OnEnter then
-		table.insert(Connections, GuiObject.MouseEnter:Connect(Callbacks.OnEnter))
+		table.insert(Connections, GuiObject.MouseEnter:Connect(function()
+			HoveringObjects[GuiObject] = true
+			Callbacks.OnEnter()
+		end))
+	else
+		table.insert(Connections, GuiObject.MouseEnter:Connect(function()
+			HoveringObjects[GuiObject] = true
+		end))
 	end
 
 	if Callbacks.OnLeave then
-		table.insert(Connections, GuiObject.MouseLeave:Connect(Callbacks.OnLeave))
+		table.insert(Connections, GuiObject.MouseLeave:Connect(function()
+			HoveringObjects[GuiObject] = nil
+			Callbacks.OnLeave()
+		end))
+	else
+		table.insert(Connections, GuiObject.MouseLeave:Connect(function()
+			HoveringObjects[GuiObject] = nil
+		end))
 	end
 
 	if Callbacks.OnDown then
@@ -61,16 +70,17 @@ function GuiInput.Connect(GuiObject: GuiObject, Callbacks: InputCallbacks): Inpu
 		end
 	end
 
-	local InputConnection = {}
+	local Connection = {}
 
-	function InputConnection:Disconnect()
-		for _, Connection in Connections do
-			Connection:Disconnect()
+	function Connection:Disconnect()
+		for _, RbxConnection in Connections do
+			RbxConnection:Disconnect()
 		end
+		HoveringObjects[GuiObject] = nil
 		table.clear(Connections)
 	end
 
-	return InputConnection
+	return Connection
 end
 
 function GuiInput.OnHover(GuiObject: GuiObject, OnEnter: () -> (), OnLeave: () -> ()): InputConnection
@@ -94,14 +104,11 @@ function GuiInput.OnPress(GuiObject: GuiObject, OnDown: () -> (), OnUp: () -> ()
 end
 
 function GuiInput.IsHovering(GuiObject: GuiObject): boolean
-	local MouseLocation = UserInputService:GetMouseLocation()
-	local AbsolutePosition = GuiObject.AbsolutePosition
-	local AbsoluteSize = GuiObject.AbsoluteSize
+	return HoveringObjects[GuiObject] == true
+end
 
-	return MouseLocation.X >= AbsolutePosition.X 
-		and MouseLocation.X <= AbsolutePosition.X + AbsoluteSize.X
-		and MouseLocation.Y >= AbsolutePosition.Y 
-		and MouseLocation.Y <= AbsolutePosition.Y + AbsoluteSize.Y
+function GuiInput.GetMousePosition(): Vector2
+	return UserInputService:GetMouseLocation()
 end
 
 return GuiInput
