@@ -16,6 +16,8 @@ local SIZE_ADJUSTMENT_DURATION = 0.3
 local DEFAULT_SIZE_SCALAR = 1.3
 local SIZE_HOLDER_NAME = "SizeHolder"
 local ORIGIN_SIZE_ATTRIBUTE = "OriginSize"
+local ORIGIN_ZINDEX_ATTRIBUTE = "OriginZIndex"
+local ORIGIN_LAYOUT_ORDER_ATTRIBUTE = "OriginLayoutOrder"
 
 -- Variables
 local SizeHolderTemplate = Instance.new("Frame")
@@ -25,8 +27,8 @@ SizeHolderTemplate.AnchorPoint = Vector2.new(0.5, 0.5)
 SizeHolderTemplate.BackgroundTransparency = 1
 SizeHolderTemplate.Name = SIZE_HOLDER_NAME
 
--- Weak keys to avoid retaining destroyed instances
-local SizeIncreased = setmetatable({} :: {[GuiObject]: UDim2?}, { __mode = "k" }) 
+-- Weak tables to avoid retaining destroyed instances
+local SizeIncreased = setmetatable({} :: {[GuiObject]: boolean}, { __mode = "k" }) 
 local SizeIterations = setmetatable({} :: {[GuiObject]: number}, { __mode = "k" }) 
 
 local GuiEffects = {}
@@ -34,18 +36,13 @@ GuiEffects.Tweener = Tweener
 
 -- Functions
 local function GetSizeIteration(GuiObject: GuiObject): number
-	local CurrentIteration = SizeIterations[GuiObject]
-	if CurrentIteration == nil then
-		SizeIterations[GuiObject] = 0
-		return 0
-	end
-	return CurrentIteration
+	return SizeIterations[GuiObject] or 0
 end
 
 local function IncrementSizeIteration(GuiObject: GuiObject): number
-	local CurrentIteration = GetSizeIteration(GuiObject)
-	SizeIterations[GuiObject] = CurrentIteration + 1
-	return SizeIterations[GuiObject]
+	local CurrentIteration = GetSizeIteration(GuiObject) + 1
+	SizeIterations[GuiObject] = CurrentIteration
+	return CurrentIteration
 end
 
 local function IsSameIteration(GuiObject: GuiObject, StoredIteration: number): boolean
@@ -53,8 +50,9 @@ local function IsSameIteration(GuiObject: GuiObject, StoredIteration: number): b
 end
 
 local function GetSizeHolder(GuiObject: GuiObject): Frame?
-	if GuiObject.Parent and GuiObject.Parent.Name == SIZE_HOLDER_NAME then
-		return GuiObject.Parent :: Frame
+	local Parent = GuiObject.Parent
+	if Parent and Parent:IsA("Frame") and Parent.Name == SIZE_HOLDER_NAME then
+		return Parent :: Frame
 	end
 	return nil
 end
@@ -64,9 +62,52 @@ local function CreateSizeHolder(GuiObject: GuiObject): Frame
 	NewSizeHolder.Size = GuiObject.Size
 	NewSizeHolder.Position = GuiObject.Position
 	NewSizeHolder.AnchorPoint = GuiObject.AnchorPoint
+	NewSizeHolder.ZIndex = GuiObject.ZIndex
+	NewSizeHolder.LayoutOrder = GuiObject.LayoutOrder
 	NewSizeHolder.Parent = GuiObject.Parent
+
+	-- Store original values for restoration
+	GuiObject:SetAttribute(ORIGIN_ZINDEX_ATTRIBUTE, GuiObject.ZIndex)
+	GuiObject:SetAttribute(ORIGIN_LAYOUT_ORDER_ATTRIBUTE, GuiObject.LayoutOrder)
+
+	-- Move GuiObject into holder with centered position
+	GuiObject.Position = UDim2.fromScale(0.5, 0.5)
+	GuiObject.AnchorPoint = Vector2.new(0.5, 0.5)
 	GuiObject.Parent = NewSizeHolder
+	
+	GuiObject.Destroying:Once(function()
+		if NewSizeHolder.Parent then
+			NewSizeHolder:Destroy()
+		end
+	end)
+
 	return NewSizeHolder
+end
+
+local function RemoveSizeHolder(GuiObject: GuiObject, SizeHolder: Frame): ()
+	local HolderParent = SizeHolder.Parent
+	if not HolderParent then return end
+
+	-- Restore original position and anchor
+	GuiObject.Position = SizeHolder.Position
+	GuiObject.AnchorPoint = SizeHolder.AnchorPoint
+
+	-- Restore ZIndex and LayoutOrder if stored
+	local OriginZIndex = GuiObject:GetAttribute(ORIGIN_ZINDEX_ATTRIBUTE)
+	local OriginLayoutOrder = GuiObject:GetAttribute(ORIGIN_LAYOUT_ORDER_ATTRIBUTE)
+
+	if OriginZIndex then
+		GuiObject.ZIndex = OriginZIndex
+		GuiObject:SetAttribute(ORIGIN_ZINDEX_ATTRIBUTE, nil)
+	end
+
+	if OriginLayoutOrder then
+		GuiObject.LayoutOrder = OriginLayoutOrder
+		GuiObject:SetAttribute(ORIGIN_LAYOUT_ORDER_ATTRIBUTE, nil)
+	end
+
+	GuiObject.Parent = HolderParent
+	SizeHolder:Destroy()
 end
 
 local function NeedsSizeHolder(GuiObject: GuiObject): boolean
@@ -77,7 +118,7 @@ local function GetDefaultTweenSettings(Settings: TweenSettings?): TweenSettings
 	if type(Settings) == "table" then
 		return Settings
 	end
-	return {Duration = SIZE_ADJUSTMENT_DURATION}
+	return { Duration = SIZE_ADJUSTMENT_DURATION }
 end
 
 local function BrightenColor(Color: Color3): Color3
@@ -101,7 +142,7 @@ function GuiEffects.IncreaseSize(GuiObject: GuiObject, SizeScalar: number?, Sett
 		CreateSizeHolder(GuiObject)
 	end
 
-	if not GuiObject:GetAttribute(ORIGIN_SIZE_ATTRIBUTE) then
+	if SizeIncreased[GuiObject] ~= true then
 		GuiObject:SetAttribute(ORIGIN_SIZE_ATTRIBUTE, GuiObject.Size)
 	end
 
@@ -115,10 +156,10 @@ function GuiEffects.IncreaseSize(GuiObject: GuiObject, SizeScalar: number?, Sett
 		OriginSize.Y.Offset * Scalar
 	)
 
-	SizeIncreased[GuiObject] = OriginSize
+	SizeIncreased[GuiObject] = true
 
 	local TweenSettings = GetDefaultTweenSettings(Settings)
-	return Tweener.Do(GuiObject, {Size = IncreasedSize}, TweenSettings)
+	return Tweener.Do(GuiObject, { Size = IncreasedSize }, TweenSettings)
 end
 
 function GuiEffects.DecreaseSize(GuiObject: GuiObject, DecreaseSizeTo: UDim2, ReturnToOrigin: boolean?, Settings: TweenSettings?)
@@ -131,13 +172,13 @@ function GuiEffects.DecreaseSize(GuiObject: GuiObject, DecreaseSizeTo: UDim2, Re
 	end
 
 	local TweenSettings = GetDefaultTweenSettings(Settings)
-	local DecreaseTween = Tweener.Do(GuiObject, {Size = DecreaseSizeTo}, TweenSettings)
+	local DecreaseTween = Tweener.Do(GuiObject, { Size = DecreaseSizeTo }, TweenSettings)
 
 	DecreaseTween.Completed:Wait()
-
+	
 	if not ReturnToOrigin then return end
 	if not IsSameIteration(GuiObject, StoredIteration) then return end
-
+	
 	GuiEffects.ReturnSizeToOrigin(GuiObject, Settings)
 end
 
@@ -151,7 +192,7 @@ function GuiEffects.ReturnSizeToOrigin(GuiObject: GuiObject, Settings: TweenSett
 	local SizeHolder = GetSizeHolder(GuiObject)
 	local TweenSettings = GetDefaultTweenSettings(Settings)
 
-	local ReturnTween = Tweener.Do(GuiObject, {Size = OriginSize}, TweenSettings)
+	local ReturnTween = Tweener.Do(GuiObject, { Size = OriginSize }, TweenSettings)
 	SizeIncreased[GuiObject] = nil
 
 	if not SizeHolder then return ReturnTween end
@@ -160,9 +201,7 @@ function GuiEffects.ReturnSizeToOrigin(GuiObject: GuiObject, Settings: TweenSett
 		if not SizeHolder.Parent then return end
 		if not IsSameIteration(GuiObject, StoredIteration) then return end
 
-		GuiObject.Parent = SizeHolder.Parent
-		SizeHolder:Destroy()
-		SizeIncreased[GuiObject] = nil
+		RemoveSizeHolder(GuiObject, SizeHolder)
 	end)
 
 	return ReturnTween
@@ -171,10 +210,10 @@ end
 function GuiEffects.TweenColor(GuiObject: GuiObject, TargetColor: Color3, IsImageColor: boolean?, Duration: number?)
 	local TweenDuration = Duration or 0.2
 
-	if IsImageColor then
-		Tweener.Do(GuiObject, {ImageColor3 = TargetColor}, {Duration = TweenDuration})
+	if IsImageColor and (GuiObject:IsA("ImageLabel") or GuiObject:IsA("ImageButton")) then
+		Tweener.Do(GuiObject, { ImageColor3 = TargetColor }, { Duration = TweenDuration })
 	else
-		Tweener.Do(GuiObject, {BackgroundColor3 = TargetColor}, {Duration = TweenDuration})
+		Tweener.Do(GuiObject, { BackgroundColor3 = TargetColor }, { Duration = TweenDuration })
 	end
 end
 
@@ -220,9 +259,10 @@ function GuiEffects.Pop(GuiObject: GuiObject, ScaleUp: number?, Duration: number
 	local UpScale = ScaleUp or 1.15
 	local HalfDuration = (Duration or 0.2) / 2
 
-	GuiEffects.IncreaseSize(GuiObject, UpScale, {Duration = HalfDuration})
-	task.delay(HalfDuration, function()
-		GuiEffects.ReturnSizeToOrigin(GuiObject, {Duration = HalfDuration})
+	local UpTween = GuiEffects.IncreaseSize(GuiObject, UpScale, { Duration = HalfDuration })
+
+	UpTween.Completed:Once(function()
+		GuiEffects.ReturnSizeToOrigin(GuiObject, { Duration = HalfDuration })
 	end)
 end
 
@@ -244,11 +284,17 @@ function GuiEffects.Shake(GuiObject: GuiObject, Intensity: number?, Duration: nu
 end
 
 function GuiEffects.IsSizeIncreased(GuiObject: GuiObject): boolean
-	return SizeIncreased[GuiObject] ~= nil
+	return SizeIncreased[GuiObject] == true
 end
 
 function GuiEffects.GetOriginSize(GuiObject: GuiObject): UDim2?
 	return GuiObject:GetAttribute(ORIGIN_SIZE_ATTRIBUTE) :: UDim2?
+end
+
+function GuiEffects.ClearSizeState(GuiObject: GuiObject): ()
+	SizeIncreased[GuiObject] = nil
+	SizeIterations[GuiObject] = nil
+	GuiObject:SetAttribute(ORIGIN_SIZE_ATTRIBUTE, nil)
 end
 
 return GuiEffects

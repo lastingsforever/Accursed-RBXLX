@@ -170,11 +170,11 @@ end
 
 local function ParseTweenConfig(Config: TweenConfig?, DefaultDuration: number): Tweener.TweenSettings
 	if Config == nil then
-		return {Duration = DefaultDuration}
+		return { Duration = DefaultDuration }
 	end
 
 	if type(Config) == "number" then
-		return {Duration = Config}
+		return { Duration = Config }
 	end
 
 	if typeof(Config) == "TweenInfo" then
@@ -215,6 +215,9 @@ local function CreateCleanup(Connections: {GuiInput.InputConnection}, RbxConnect
 		end
 
 		table.clear(Connections)
+		if RbxConnections then
+			table.clear(RbxConnections)
+		end
 	end
 
 	return Cleanup
@@ -269,7 +272,7 @@ function GuiPatterns.HoverColor(GuiObject: GuiObject, Config: HoverColorConfig?)
 	local IsImageColor = Settings.IsImageColor or false
 
 	local OriginalColor: Color3
-	if IsImageColor then
+	if IsImageColor and (GuiObject:IsA("ImageLabel") or GuiObject:IsA("ImageButton")) then
 		OriginalColor = (GuiObject :: ImageLabel).ImageColor3
 	else
 		OriginalColor = GuiObject.BackgroundColor3
@@ -295,10 +298,10 @@ function GuiPatterns.HoverTransparency(GuiObject: GuiObject, Config: HoverTransp
 
 	local Connection = GuiInput.OnHover(GuiObject,
 		function()
-			Tweener.Do(GuiObject, {BackgroundTransparency = HoverTransparency}, TweenSettings)
+			Tweener.Do(GuiObject, { BackgroundTransparency = HoverTransparency }, TweenSettings)
 		end,
 		function()
-			Tweener.Do(GuiObject, {BackgroundTransparency = OriginalTransparency}, TweenSettings)
+			Tweener.Do(GuiObject, { BackgroundTransparency = OriginalTransparency }, TweenSettings)
 		end
 	)
 
@@ -362,7 +365,7 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 			OriginSize.Y.Offset * PressScale
 		)
 
-		Tweener.Do(GuiObject, {Size = SquishSize}, PressTweenSettings)
+		Tweener.Do(GuiObject, { Size = SquishSize }, PressTweenSettings)
 	end
 
 	local function HandleRelease()
@@ -374,7 +377,6 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 			end
 		end
 
-		-- Mobile "hover" should end after releasing
 		if DeviceType == "Mobile" then
 			task.defer(HandleLeave)
 		end
@@ -392,14 +394,15 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 		OnDown = HandlePress,
 		OnUp = HandleRelease,
 	}))
-
-	-- Only attach Activated behavior if the input is actually a button
+	
 	if Input:IsA("GuiButton") then
 		if OnActivated then
 			table.insert(Connections, GuiInput.OnClick(Input :: GuiButton, function()
 				OnActivated()
 			end))
 		end
+	elseif OnActivated then
+		warn("GuiPatterns.BasicInput: OnActivated provided but Input is not a GuiButton")
 	end
 
 	return CreateCleanup(Connections, nil, nil)
@@ -457,7 +460,7 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 				OriginSize.Y.Scale * PressScale,
 				OriginSize.Y.Offset * PressScale
 			)
-			Tweener.Do(GuiButton, {Size = SquishSize}, PressTweenSettings)
+			Tweener.Do(GuiButton, { Size = SquishSize }, PressTweenSettings)
 		end,
 		function()
 			IsPressed = false
@@ -551,14 +554,13 @@ function GuiPatterns.Switch(ToggleButton: GuiButton, InnerObject: GuiObject, Con
 	local Connections: {GuiInput.InputConnection} = {}
 	local RbxConnections: {RBXScriptConnection} = {}
 
-	-- non-optional so return type is guaranteed
-	local Result: SwitchResult = nil :: any
+	local Result: SwitchResult
 
 	local function SetVisual()
 		local TargetPosition = if IsOn then OnPosition else OffPosition
 		local TargetColor = if IsOn then OnColor else OffColor
 
-		Tweener.Do(InnerObject, {Position = TargetPosition}, TweenSettings)
+		Tweener.Do(InnerObject, { Position = TargetPosition }, TweenSettings)
 		GuiEffects.TweenColor(InnerObject, TargetColor, IsImageColor, TweenSettings.Duration)
 	end
 
@@ -612,7 +614,6 @@ function GuiPatterns.Switch(ToggleButton: GuiButton, InnerObject: GuiObject, Con
 	return Result
 end
 
-
 function GuiPatterns.SelectableGroup(Buttons: {GuiButton}, OnSelect: (SelectedIndex: number, SelectedButton: GuiButton) -> (), Config: SelectableConfig?): PatternCleanup
 	local Settings = Config or {} :: SelectableConfig
 	local ActiveColor = Settings.ActiveColor or Color3.fromRGB(100, 200, 100)
@@ -633,7 +634,7 @@ function GuiPatterns.SelectableGroup(Buttons: {GuiButton}, OnSelect: (SelectedIn
 		for Index, Button in Buttons do
 			local IsSelected = Index == SelectedIndex
 			local TargetColor = if IsSelected then ActiveColor else (InactiveColor or OriginalColors[Button] or Button.BackgroundColor3)
-			
+
 			GuiEffects.TweenColor(Button, TargetColor, false, TweenSettings.Duration)
 
 			if IsSelected then
@@ -682,20 +683,14 @@ function GuiPatterns.ListToggle(GuiButton: GuiButton, List: {any}, Config: ListT
 	local Connections: {GuiInput.InputConnection} = {}
 	local RbxConnections: {RBXScriptConnection} = {}
 
-	-- non-optional so return type is guaranteed
-	local Result: ListToggleResult = nil :: any
-
-	local function UpdateResultFields()
-		Result.CurrentIndex = CurrentIndex
-		Result.CurrentValue = List[CurrentIndex]
-	end
+	local Result: ListToggleResult
 
 	local function UpdateDisplay()
 		if TextObject then
-			-- Workaround for Luau sometimes complaining about `.Text` on unions
 			(TextObject :: any).Text = tostring(List[CurrentIndex])
 		end
-		UpdateResultFields()
+		Result.CurrentIndex = CurrentIndex
+		Result.CurrentValue = List[CurrentIndex]
 	end
 
 	table.insert(Connections, GuiInput.OnClick(GuiButton, function()
@@ -739,7 +734,6 @@ function GuiPatterns.ListToggle(GuiButton: GuiButton, List: {any}, Config: ListT
 	UpdateDisplay()
 	return Result
 end
-
 
 function GuiPatterns.Tooltip(TriggerObject: GuiObject, TooltipFrame: GuiObject, Config: TooltipConfig?): PatternCleanup
 	local Settings = Config or {} :: TooltipConfig
@@ -789,16 +783,17 @@ function GuiPatterns.Draggable(GuiObject: GuiObject, Config: DraggableConfig?): 
 	local OnDragEnd = Settings.OnDragEnd
 
 	local IsDragging = false
-	local DragStart: Vector2
-	local StartPosition: UDim2
+	local DragStartPosition: Vector3
+	local StartGuiPosition: UDim2
 	local Connections: {GuiInput.InputConnection} = {}
 	local RbxConnections: {RBXScriptConnection} = {}
 
 	table.insert(Connections, GuiInput.Connect(Handle, {
 		OnDown = function()
 			IsDragging = true
-			DragStart = UserInputService:GetMouseLocation()
-			StartPosition = GuiObject.Position
+			local MouseLocation = UserInputService:GetMouseLocation()
+			DragStartPosition = Vector3.new(MouseLocation.X, MouseLocation.Y, 0)
+			StartGuiPosition = GuiObject.Position
 
 			if OnDragStart then
 				OnDragStart()
@@ -813,29 +808,43 @@ function GuiPatterns.Draggable(GuiObject: GuiObject, Config: DraggableConfig?): 
 			return
 		end
 
-		local CurrentMouse = Vector2.new(InputObject.Position.X, InputObject.Position.Y)
-		local Delta = CurrentMouse - DragStart
-		local NewPosition = StartPosition + UDim2.fromOffset(Delta.X, Delta.Y)
+		local current = InputObject.Position
+		local deltaX = current.X - DragStartPosition.X
+		local deltaY = current.Y - DragStartPosition.Y
+
+		local newScaleX = StartGuiPosition.X.Scale
+		local newScaleY = StartGuiPosition.Y.Scale
+		local newOffsetX = StartGuiPosition.X.Offset + deltaX
+		local newOffsetY = StartGuiPosition.Y.Offset + deltaY
 
 		if BoundToParent and GuiObject.Parent and GuiObject.Parent:IsA("GuiObject") then
-			local ParentObject = GuiObject.Parent :: GuiObject
-			local ParentSize = ParentObject.AbsoluteSize
-			local ObjectSize = GuiObject.AbsoluteSize
+			local parent = GuiObject.Parent :: GuiObject
+			local parentSize = parent.AbsoluteSize
 
-			local MinX = 0
-			local MaxX = ParentSize.X - ObjectSize.X
-			local MinY = 0
-			local MaxY = ParentSize.Y - ObjectSize.Y
+			local startAbs = GuiObject.AbsolutePosition - parent.AbsolutePosition
+			local desiredAbs = Vector2.new(startAbs.X + deltaX, startAbs.Y + deltaY)
 
-			local AbsoluteX = math.clamp(NewPosition.X.Offset, MinX, MaxX)
-			local AbsoluteY = math.clamp(NewPosition.Y.Offset, MinY, MaxY)
+			local objSize = GuiObject.AbsoluteSize
+			local anchor = GuiObject.AnchorPoint
+			local anchorPx = Vector2.new(objSize.X * anchor.X, objSize.Y * anchor.Y)
 
-			NewPosition = UDim2.fromOffset(AbsoluteX, AbsoluteY)
+			local minX = anchorPx.X
+			local minY = anchorPx.Y
+			local maxX = parentSize.X - objSize.X + anchorPx.X
+			local maxY = parentSize.Y - objSize.Y + anchorPx.Y
+
+			local clampedAbs = Vector2.new(
+				math.clamp(desiredAbs.X, minX, maxX),
+				math.clamp(desiredAbs.Y, minY, maxY)
+			)
+
+			newOffsetX = clampedAbs.X - parentSize.X * newScaleX
+			newOffsetY = clampedAbs.Y - parentSize.Y * newScaleY
 		end
 
-		GuiObject.Position = NewPosition
+		GuiObject.Position = UDim2.new(newScaleX, newOffsetX, newScaleY, newOffsetY)
 	end))
-
+	
 	table.insert(RbxConnections, UserInputService.InputEnded:Connect(function(InputObject: InputObject)
 		if InputObject.UserInputType == Enum.UserInputType.MouseButton1
 			or InputObject.UserInputType == Enum.UserInputType.Touch then
@@ -859,6 +868,8 @@ function GuiPatterns.NumberInput(TextBox: TextBox, Config: NumberInputConfig?): 
 	local ChangedSignal = Signal.new()
 	local RbxConnections: {RBXScriptConnection} = {}
 	local TextChangedConnection: RBXScriptConnection? = nil
+
+	local Result: NumberInputResult
 
 	table.insert(RbxConnections, TextBox.Focused:Connect(function()
 		if TextChangedConnection and TextChangedConnection.Connected then return end
@@ -887,14 +898,18 @@ function GuiPatterns.NumberInput(TextBox: TextBox, Config: NumberInputConfig?): 
 		local ClampedValue = math.clamp(ParsedNumber, MinValue, MaxValue)
 		TextBox.Text = tostring(ClampedValue)
 		LastValidValue = ClampedValue
+		Result.LastValue = ClampedValue
 		ChangedSignal:Fire(ClampedValue)
 	end))
 
 	table.insert(RbxConnections, TextBox.Destroying:Connect(function()
 		ChangedSignal:DisconnectAll()
+		if TextChangedConnection then
+			TextChangedConnection:Disconnect()
+		end
 	end))
 
-	local Result: NumberInputResult = {
+	Result = {
 		Changed = ChangedSignal,
 		LastValue = LastValidValue,
 
@@ -919,6 +934,8 @@ function GuiPatterns.TextInput(TextBox: TextBox): TextInputResult
 	local RbxConnections: {RBXScriptConnection} = {}
 	local TextChangedConnection: RBXScriptConnection? = nil
 
+	local Result: TextInputResult
+
 	table.insert(RbxConnections, TextBox.Focused:Connect(function()
 		if TextChangedConnection and TextChangedConnection.Connected then return end
 
@@ -934,15 +951,19 @@ function GuiPatterns.TextInput(TextBox: TextBox): TextInputResult
 		end
 
 		LastValue = TextBox.Text
+		Result.LastValue = LastValue
 		SubmittedSignal:Fire(TextBox.Text, EnterPressed)
 	end))
 
 	table.insert(RbxConnections, TextBox.Destroying:Connect(function()
 		ChangedSignal:DisconnectAll()
 		SubmittedSignal:DisconnectAll()
+		if TextChangedConnection then
+			TextChangedConnection:Disconnect()
+		end
 	end))
 
-	local Result: TextInputResult = {
+	Result = {
 		Changed = ChangedSignal,
 		Submitted = SubmittedSignal,
 		LastValue = LastValue,
