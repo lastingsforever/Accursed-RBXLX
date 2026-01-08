@@ -42,6 +42,19 @@ export type ScreenGuiTemplate = {
 
 } & SharedTypes.JanitorClassTemplate
 
+export type MainMenu = {
+
+	OnMenuButtonActivated : (self: MainMenu, MenuButtonName: string) -> (),
+
+} & ScreenGuiTemplate
+
+export type CharacterSlots = { 
+	
+	
+	
+} & ScreenGuiTemplate
+
+
 
 local ClientTypes = {}
 return ClientTypes

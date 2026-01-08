@@ -13,9 +13,10 @@ local ClientServices = Client:WaitForChild("Services")
 local ScreenGuiService = require(ClientServices:WaitForChild("ScreenGuiService"))
 local GuiService = require(ClientServices:WaitForChild("GuiService"))
 
+
 -- Types
 local ClientTypes = require(ReplicatedCore:WaitForChild("Client"):WaitForChild("ClientTypes"))
-type MainMenu = ClientTypes.MainMenu
+type CharacterSlots = ClientTypes.CharacterSlots
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -24,16 +25,16 @@ local ReplicatedClientAssets = ReplicatedStorage:WaitForChild("ReplicatedAssets"
 local ScreenGuiAssets = ReplicatedClientAssets:WaitForChild("ScreenGuis")
 local LiveScreenGuis = ReplicatedClientAssets:WaitForChild("LiveScreenGuis")
 
-local ScreenGui = ScreenGuiAssets:FindFirstChild("MainMenu") 
+local ScreenGui = ScreenGuiAssets:WaitForChild("CharacterSlots") 
 
 -- Object
-local MainMenu = {}
-MainMenu.__index = MainMenu
+local CharacterSlots = {}
+CharacterSlots.__index = CharacterSlots
 
-function MainMenu.new() : MainMenu
-	local self : MainMenu = setmetatable({ 
+function CharacterSlots.new() : CharacterSlots
+	local self : CharacterSlots = setmetatable({ 
 		
-		Name = "MainMenu",
+		Name = "CharacterSlots",
 		IsOpen = false,
 		IsEnabled = true,
 		IsLoaded = false,
@@ -44,29 +45,29 @@ function MainMenu.new() : MainMenu
 		_janitor = Janitor.new(),
 		_destroyed = false,
 		
-	}, MainMenu) :: any
+	}, CharacterSlots) :: any
 	
 	
 	
-	return self :: MainMenu
+	return self
 end
 
 
 
-function MainMenu:Blurred(BlurredBy : MainMenu)
-	local self = self :: MainMenu
+function CharacterSlots:Blurred(BlurredBy : CharacterSlots)
+	local self = self :: CharacterSlots
 	
 	self.IsFocused = false
 end
 
-function MainMenu:ReFocused()
-	local self = self :: MainMenu
+function CharacterSlots:ReFocused()
+	local self = self :: CharacterSlots
 	
 	self.IsFocused = true
 end
 
-function MainMenu:SetVisible(SetTo : boolean)
-	local self = self :: MainMenu
+function CharacterSlots:SetVisible(SetTo : boolean)
+	local self = self :: CharacterSlots
 	self.IsEnabled = SetTo
 	if not self.ScreenGui then return end 
 	
@@ -75,34 +76,28 @@ function MainMenu:SetVisible(SetTo : boolean)
 	self.ScreenGui.Enabled = SetTo
 end
 
-function MainMenu:Load()
-	local self = self :: MainMenu
+function CharacterSlots:Load()
+	local self = self :: CharacterSlots
 	if not ScreenGui or not ScreenGui:IsA("ScreenGui") then error("Unable to find ScreenGui with name: " .. tostring(self.Name)) return end 
 	
-	self.ScreenGui = ScreenGui
 	
-	
-	for _, MenuButton in ScreenGui.MenuButtons:GetChildren() do 
-		if not MenuButton:IsA("GuiButton") then continue end 
-		
-		self._janitor:Add(GuiService.Button(MenuButton, {
-			
-			OnClick = function()
-				warn("Debug 1")
-				self:OnMenuButtonActivated(MenuButton.Name)
-			end,
-			
-			HoverScale = 1.1,
-			PressScale = 0.95,
-			HoverFrameTweenInfo = 0.2,
-			PopOnClick = true, 
-			UseHoverFrames = true,
-		}))
-	end
+	self._janitor:Add(GuiService.Button(ScreenGui.Container.Back, {
 
-	
+		OnClick = function()
+			ScreenGuiService.PopScreen()
+		end,
 
+		HoverScale = 1.1,
+		PressScale = 0.95,
+		BrightenOnHover = true,
+		PopOnClick = true, 
+	}))
 	
+	GuiService.HoverScale(ScreenGui.Container.SlotsHolder.Slot, {
+		Scale = 1.05,
+		TweenInfo = .2,
+		BrightenOnHover = true,
+	})
 	
 	ScreenGui.Parent = LiveScreenGuis
 	
@@ -110,14 +105,12 @@ function MainMenu:Load()
 	self.IsLoaded = true
 end
 
-function MainMenu:OnMenuButtonActivated(MenuButtonName: "Credits" | "Customize" | "Divert" | "Hub")
-	if MenuButtonName == "Divert" then 
-		ScreenGuiService.PushScreen("CharacterSlots")
-	end
+function CharacterSlots:InitBackButton()
+	
 end
 
-function MainMenu:Open()
-	local self = self :: MainMenu
+function CharacterSlots:Open()
+	local self = self :: CharacterSlots
 	if not self.IsLoaded then self:Load() end 
 	if not self.ScreenGui then return end
 	self._openJanitor:Cleanup()
@@ -129,8 +122,8 @@ function MainMenu:Open()
 	self.IsOpen = true
 end
 
-function MainMenu:Close()
-	local self = self :: MainMenu
+function CharacterSlots:Close()
+	local self = self :: CharacterSlots
 	if not self.ScreenGui then return end
 	
 	
@@ -140,9 +133,9 @@ function MainMenu:Close()
 	self.IsOpen = false
 end
 
-function MainMenu:Destroy() 
+function CharacterSlots:Destroy() 
 	if self._destroyed then return end 
-	local self = self :: MainMenu
+	local self = self :: CharacterSlots
 	
 	self._destroyed = true
 	self._janitor:Destroy()
@@ -151,4 +144,4 @@ function MainMenu:Destroy()
 	setmetatable(self :: any, nil)
 end
 
-return MainMenu
+return CharacterSlots

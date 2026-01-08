@@ -63,6 +63,11 @@ export type ButtonConfig = {
 	BrightenOnHover: boolean?,
 	ColorTweenInfo: TweenConfig?,
 	PopOnClick: boolean?,
+	
+	UseHoverFrames: boolean?,
+	DefaultFrame: Frame?,
+	HoveredFrame: Frame?,
+	HoverFrameTweenInfo: TweenConfig?,
 }
 
 export type ToggleConfig = {
@@ -245,7 +250,9 @@ function GuiPatterns.HoverScale(GuiObject: GuiObject, Config: HoverScaleConfig?)
 	local ColorSettings = ParseTweenConfig(Settings.ColorTweenInfo, DEFAULT_COLOR_DURATION)
 
 	local OriginalColor = GuiObject.BackgroundColor3
-
+	
+	GuiEffects.EnsureOriginSize(GuiObject)
+	
 	local Connection = GuiInput.OnHover(GuiObject,
 		function()
 			GuiEffects.IncreaseSize(GuiObject, Scale, TweenSettings)
@@ -381,7 +388,11 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 			task.defer(HandleLeave)
 		end
 	end
-
+	
+	if not NoScale then
+		GuiEffects.EnsureOriginSize(GuiObject)
+	end
+	
 	if DeviceType == "PC" then
 		table.insert(Connections, GuiInput.OnHover(Input, HandleEnter, HandleLeave))
 	else
@@ -408,6 +419,7 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 	return CreateCleanup(Connections, nil, nil)
 end
 
+
 function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): PatternCleanup
 	local Settings = Config or {} :: ButtonConfig
 	local OnClick = Settings.OnClick
@@ -419,29 +431,152 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 	local ColorSettings = ParseTweenConfig(Settings.ColorTweenInfo, DEFAULT_COLOR_DURATION)
 	local PopOnClick = if Settings.PopOnClick == nil then true else Settings.PopOnClick
 
+	local UseHoverFrames = Settings.UseHoverFrames or false
+	local DefaultFrame = Settings.DefaultFrame or GuiButton:FindFirstChild("Default") :: Frame?
+	local HoveredFrame = Settings.HoveredFrame or GuiButton:FindFirstChild("Hovered") :: Frame?
+	local HoverFrameSettings = ParseTweenConfig(Settings.HoverFrameTweenInfo, DEFAULT_HOVER_DURATION)
+
 	local OriginalColor = GuiButton.BackgroundColor3
 	local IsPressed = false
 	local Connections: {GuiInput.InputConnection} = {}
 
+	local HasHoverFrames = UseHoverFrames and DefaultFrame and HoveredFrame
+
+	local SkipBackgroundTransparency: {[Instance]: boolean} = {}
+
+	local function CacheTransparentBackgrounds(Frame: Frame | ImageLabel | ImageButton)
+		if not Frame then return end
+
+		local IsImage = Frame:IsA("ImageLabel") or Frame:IsA("ImageButton")
+		if IsImage and Frame.BackgroundTransparency == 1 then
+			SkipBackgroundTransparency[Frame] = true
+		end
+
+		for _, Descendant in Frame:GetDescendants() do
+			if Descendant:IsA("GuiObject") then
+				local DescendantIsImage = Descendant:IsA("ImageLabel") or Descendant:IsA("ImageButton")
+				if DescendantIsImage and Descendant.BackgroundTransparency == 1 then
+					SkipBackgroundTransparency[Descendant] = true
+				end
+			end
+		end
+	end
+
+	local function SetFrameTransparency(Frame: Frame | ImageLabel | ImageButton, Transparency: number, Animate: boolean)
+		if not Frame then return end
+
+		local Properties: {[string]: number} = {}
+
+		if not SkipBackgroundTransparency[Frame] then
+			Properties.BackgroundTransparency = Transparency
+		end
+
+		if Frame:IsA("ImageLabel") or Frame:IsA("ImageButton") then
+			Properties.ImageTransparency = Transparency
+		end
+
+		for _, Descendant in Frame:GetDescendants() do
+			if Descendant:IsA("GuiObject") then
+				local DescendantProps: {[string]: number} = {}
+
+				if not SkipBackgroundTransparency[Descendant] then
+					DescendantProps.BackgroundTransparency = Transparency
+				end
+
+				if Descendant:IsA("ImageLabel") or Descendant:IsA("ImageButton") then
+					DescendantProps.ImageTransparency = Transparency
+				end
+
+				if Descendant:IsA("TextLabel") or Descendant:IsA("TextButton") or Descendant:IsA("TextBox") then
+					DescendantProps.TextTransparency = Transparency
+				end
+
+				if next(DescendantProps) then
+					if Animate then
+						Tweener.Do(Descendant, DescendantProps, HoverFrameSettings)
+					else
+						for Property, Value in DescendantProps do
+							(Descendant :: any)[Property] = Value
+						end
+					end
+				end
+			end
+
+			if Descendant:IsA("UIStroke") then
+				if Animate then
+					Tweener.Do(Descendant, {Transparency = Transparency}, HoverFrameSettings)
+				else
+					Descendant.Transparency = Transparency
+				end
+			end
+		end
+
+		if next(Properties) then
+			if Animate then
+				Tweener.Do(Frame, Properties, HoverFrameSettings)
+			else
+				for Property, Value in Properties do
+					(Frame :: any)[Property] = Value
+				end
+			end
+		end
+	end
+
+	local function DisableFrameInteraction(Frame: Frame)
+		if not Frame then return end
+
+		if Frame:IsA("GuiObject") then
+			Frame.Active = false
+		end
+
+		for _, Descendant in Frame:GetDescendants() do
+			if Descendant:IsA("GuiObject") then
+				Descendant.Active = false
+			end
+		end
+	end
+
+	if HasHoverFrames then
+		local HoveredFrame = HoveredFrame::Frame
+		
+		CacheTransparentBackgrounds(HoveredFrame :: Frame)
+
+		DisableFrameInteraction(DefaultFrame :: Frame)
+		DisableFrameInteraction(HoveredFrame :: Frame)
+
+		HoveredFrame.ZIndex = (DefaultFrame :: Frame).ZIndex + 1
+		SetFrameTransparency(HoveredFrame :: Frame, 1, false)
+	end
+
 	local function HandleEnter()
+		if HasHoverFrames then
+			SetFrameTransparency(HoveredFrame :: Frame, 0, true)
+		end
+
 		GuiEffects.IncreaseSize(GuiButton, HoverScale, HoverTweenSettings)
 
-		if BrightenOnHover then
+		if BrightenOnHover and not HasHoverFrames then
 			local BrightColor = GuiEffects.BrightenColor(OriginalColor)
 			GuiEffects.TweenColor(GuiButton, BrightColor, false, ColorSettings.Duration)
 		end
 	end
 
 	local function HandleLeave()
+		if HasHoverFrames then
+			SetFrameTransparency(HoveredFrame :: Frame, 1, true)
+		end
+
 		if not IsPressed then
 			GuiEffects.ReturnSizeToOrigin(GuiButton, HoverTweenSettings)
 		end
 
-		if BrightenOnHover then
+		if BrightenOnHover and not HasHoverFrames then
 			GuiEffects.TweenColor(GuiButton, OriginalColor, false, ColorSettings.Duration)
 		end
 	end
-
+	
+	GuiEffects.EnsureOriginSize(GuiButton)
+	
 	if DeviceType == "PC" then
 		table.insert(Connections, GuiInput.OnHover(GuiButton, HandleEnter, HandleLeave))
 	else
@@ -460,7 +595,7 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 				OriginSize.Y.Scale * PressScale,
 				OriginSize.Y.Offset * PressScale
 			)
-			Tweener.Do(GuiButton, { Size = SquishSize }, PressTweenSettings)
+			Tweener.Do(GuiButton, {Size = SquishSize}, PressTweenSettings)
 		end,
 		function()
 			IsPressed = false
@@ -468,7 +603,7 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 				GuiEffects.IncreaseSize(GuiButton, HoverScale, HoverTweenSettings)
 			else
 				GuiEffects.ReturnSizeToOrigin(GuiButton, HoverTweenSettings)
-				if BrightenOnHover then
+				if BrightenOnHover and not HasHoverFrames then
 					GuiEffects.TweenColor(GuiButton, OriginalColor, false, ColorSettings.Duration)
 				end
 			end
@@ -491,7 +626,6 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 
 	return CreateCleanup(Connections, nil, nil)
 end
-
 function GuiPatterns.Toggle(GuiButton: GuiButton, Config: ToggleConfig?): PatternCleanup
 	local Settings = Config or {} :: ToggleConfig
 	local OnToggle = Settings.OnToggle

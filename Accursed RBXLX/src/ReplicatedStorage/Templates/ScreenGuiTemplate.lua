@@ -9,9 +9,10 @@ local Shared = ReplicatedCore:WaitForChild("Shared")
 local Client = ReplicatedCore:WaitForChild("Client")
 local Janitor = require(Shared:WaitForChild("Dependencies"):WaitForChild("Janitor"))
 
-local GuiModules = Client:WaitForChild("Modules"):WaitForChild("Gui")
-local GuiPatterns = require(GuiModules:WaitForChild("GuiPatterns"))
-local GuiService = require(Client:WaitForChild("Services"):WaitForChild("GuiService"))
+local ClientServices = Client:WaitForChild("Services")
+local ScreenGuiService = require(ClientServices:WaitForChild("ScreenGuiService"))
+local GuiService = require(ClientServices:WaitForChild("GuiService"))
+
 
 -- Types
 local ClientTypes = require(ReplicatedCore:WaitForChild("Client"):WaitForChild("ClientTypes"))
@@ -25,6 +26,8 @@ local PlayerGui = Player.PlayerGui
 local ReplicatedClientAssets = ReplicatedStorage:WaitForChild("ReplicatedAssets"):WaitForChild("Client")
 local ScreenGuiAssets = ReplicatedClientAssets:WaitForChild("ScreenGuis")
 local LiveScreenGuis = ReplicatedClientAssets:WaitForChild("LiveScreenGuis")
+
+local ScreenGui = ScreenGuiAssets:FindFirstChild("MainMenu") 
 
 -- Object
 local ScreenGuiTemplate = {}
@@ -77,7 +80,6 @@ end
 
 function ScreenGuiTemplate:Load()
 	local self = self :: ScreenGuiTemplate
-	local ScreenGui = ScreenGuiAssets:FindFirstChild(self.Name) 
 	if not ScreenGui or not ScreenGui:IsA("ScreenGui") then error("Unable to find ScreenGui with name: " .. tostring(self.Name)) return end 
 	
 	ScreenGui.Parent = LiveScreenGuis

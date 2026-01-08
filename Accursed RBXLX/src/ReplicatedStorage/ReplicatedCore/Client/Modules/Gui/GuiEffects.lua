@@ -28,7 +28,7 @@ SizeHolderTemplate.BackgroundTransparency = 1
 SizeHolderTemplate.Name = SIZE_HOLDER_NAME
 
 -- Weak tables to avoid retaining destroyed instances
-local SizeIncreased = setmetatable({} :: {[GuiObject]: boolean}, { __mode = "k" }) 
+local SizeIncreased = setmetatable({} :: {[GuiObject]: boolean | UDim2}, { __mode = "k" }) 
 local SizeIterations = setmetatable({} :: {[GuiObject]: number}, { __mode = "k" }) 
 
 local GuiEffects = {}
@@ -134,6 +134,16 @@ local function DarkenColor(Color: Color3): Color3
 	return Color3.fromHSV(H, S, V)
 end
 
+function GuiEffects.EnsureOriginSize(GuiObject: GuiObject): UDim2
+	local ExistingOrigin = GuiObject:GetAttribute(ORIGIN_SIZE_ATTRIBUTE) :: UDim2?
+	if ExistingOrigin then
+		return ExistingOrigin
+	end
+
+	GuiObject:SetAttribute(ORIGIN_SIZE_ATTRIBUTE, GuiObject.Size)
+	return GuiObject.Size
+end
+
 function GuiEffects.IncreaseSize(GuiObject: GuiObject, SizeScalar: number?, Settings: TweenSettings?): Tween
 	IncrementSizeIteration(GuiObject)
 
@@ -142,11 +152,7 @@ function GuiEffects.IncreaseSize(GuiObject: GuiObject, SizeScalar: number?, Sett
 		CreateSizeHolder(GuiObject)
 	end
 
-	if SizeIncreased[GuiObject] ~= true then
-		GuiObject:SetAttribute(ORIGIN_SIZE_ATTRIBUTE, GuiObject.Size)
-	end
-
-	local OriginSize = GuiObject:GetAttribute(ORIGIN_SIZE_ATTRIBUTE) :: UDim2
+	local OriginSize = GuiEffects.EnsureOriginSize(GuiObject)
 	local Scalar = SizeScalar or DEFAULT_SIZE_SCALAR
 
 	local IncreasedSize = UDim2.new(
@@ -155,11 +161,11 @@ function GuiEffects.IncreaseSize(GuiObject: GuiObject, SizeScalar: number?, Sett
 		OriginSize.Y.Scale * Scalar,
 		OriginSize.Y.Offset * Scalar
 	)
-
-	SizeIncreased[GuiObject] = true
+	
+	SizeIncreased[GuiObject] = OriginSize
 
 	local TweenSettings = GetDefaultTweenSettings(Settings)
-	return Tweener.Do(GuiObject, { Size = IncreasedSize }, TweenSettings)
+	return Tweener.Do(GuiObject, {Size = IncreasedSize}, TweenSettings)
 end
 
 function GuiEffects.DecreaseSize(GuiObject: GuiObject, DecreaseSizeTo: UDim2, ReturnToOrigin: boolean?, Settings: TweenSettings?)
@@ -296,6 +302,8 @@ function GuiEffects.ClearSizeState(GuiObject: GuiObject): ()
 	SizeIterations[GuiObject] = nil
 	GuiObject:SetAttribute(ORIGIN_SIZE_ATTRIBUTE, nil)
 end
+
+
 
 return GuiEffects
 

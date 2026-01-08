@@ -139,9 +139,27 @@ end
 
 function ScreenGuiService.GetStack(): {string}
 	return ScreenGuiController.GetStack()
-end
+end 
 
-return ScreenGuiService
+return {
+	GetScreen = ScreenGuiService.Get,
+	
+	CreateScreen = ScreenGuiService.CreateScreenGui,
+	CreateScreensFromFolder = ScreenGuiService.CreateAllFromFolder,
+	
+	OpenScreen = ScreenGuiService.Open,
+	CloseScreen = ScreenGuiService.Close,
+	CloseAllScreens = ScreenGuiService.CloseAll,
+	
+	ToggleScreen = ScreenGuiService.Toggle,
+	PushScreen = ScreenGuiService.Push,
+	PopScreen = ScreenGuiService.Pop,
+	
+	IsScreenOpen = ScreenGuiService.IsOpen,
+	GetFocusedScreen = ScreenGuiService.GetFocused,
+	GetOpenScreens = ScreenGuiService.GetOpenScreens,
+	GetScreenStack = ScreenGuiService.GetStack,
+}
 
 
 --[[ API Usage:

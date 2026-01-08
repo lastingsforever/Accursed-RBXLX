@@ -28,12 +28,18 @@ return function()
 	
 	Handshake.ClientShake("PlayerFirstLoad")
 	
+	local MainMenu  = ScreenGuiService.CreateScreen("MainMenu") :: ClientTypes.MainMenu
+	local CharacterSlots = ScreenGuiService.CreateScreen("CharacterSlots") :: ClientTypes.CharacterSlots
+	
+	--MainMenu:Load()
+	--CharacterSlots:Load()
+	
+	
+	MainMenu:Open()
+	FirstGuiEffects.End()
 	
 		
 
-	local MainMenu = ScreenGuiService.CreateScreenGui("MainMenu")
 	
-	MainMenu:Open()
 	
-	FirstGuiEffects.End()
 end
