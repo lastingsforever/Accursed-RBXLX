@@ -16,9 +16,7 @@ local GuiService = require(ClientServices:WaitForChild("GuiService"))
 
 -- Types
 local ClientTypes = require(ReplicatedCore:WaitForChild("Client"):WaitForChild("ClientTypes"))
-export type ScreenGuiTemplate = {
-	
-} & ClientTypes.ScreenGuiTemplate
+type ScreenGuiTemplate = ClientTypes.ScreenGuiTemplate
 
 -- Variables
 local Player = Players.LocalPlayer

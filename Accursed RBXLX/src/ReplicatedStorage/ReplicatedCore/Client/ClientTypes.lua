@@ -43,14 +43,19 @@ export type ScreenGuiTemplate = {
 } & SharedTypes.JanitorClassTemplate
 
 export type MainMenu = {
-
-	OnMenuButtonActivated : (self: MainMenu, MenuButtonName: string) -> (),
-
+	
+	OnMenuButtonActivated : (self: MainMenu, MenuButtonName: string) -> nil,
+	
 } & ScreenGuiTemplate
 
 export type CharacterSlots = { 
 	
+	CharacterSlotsMeta: SharedTypes.CharacterSlotsMeta?,
 	
+	BuildSlotGui: (self: CharacterSlots, SlotIndex: number, SlotInformation: SharedTypes.SlotMeta?) -> nil,
+	
+	InitBackButton: (self: CharacterSlots) -> nil,
+	InitSlots: (self: CharacterSlots) -> nil,
 	
 } & ScreenGuiTemplate
 

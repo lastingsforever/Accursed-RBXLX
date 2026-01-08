@@ -19,7 +19,7 @@ type PlayerLoadState = {
 }
 
 -- Variables
-local ProfileStoreName = "PlayerData"
+local ProfileStoreName = "PlayerData-0.0.002"
 local PlayerProfileStore = ProfileStore.New(ProfileStoreName, ProfileTemplate)
 
 local ActiveProfilesByPlayer: {[Player]: any} = {}
@@ -103,7 +103,7 @@ local function OnPlayerRemoving(Player: Player)
 	if ActiveProfile == nil then
 		return
 	end
-
+	
 	ActiveProfilesByPlayer[Player] = nil
 	SetLoadState(Player, "Failed", nil)
 	task.wait()
@@ -138,7 +138,7 @@ function PlayerProfileLoader.WaitForProfile(Player: Player): (boolean, any?)
 		if CurrentState == nil then
 			return false, nil
 		end
-
+		
 		if CurrentState.Status == "Loaded" then
 			return true, CurrentState.Profile
 		end

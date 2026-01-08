@@ -77,10 +77,11 @@ end
 
 function MainMenu:Load()
 	local self = self :: MainMenu
+	if self.IsLoaded then return end 
 	if not ScreenGui or not ScreenGui:IsA("ScreenGui") then error("Unable to find ScreenGui with name: " .. tostring(self.Name)) return end 
 	
-	self.ScreenGui = ScreenGui
 	
+	self.ScreenGui = ScreenGui
 	
 	for _, MenuButton in ScreenGui.MenuButtons:GetChildren() do 
 		if not MenuButton:IsA("GuiButton") then continue end 
@@ -88,7 +89,6 @@ function MainMenu:Load()
 		self._janitor:Add(GuiService.Button(MenuButton, {
 			
 			OnClick = function()
-				warn("Debug 1")
 				self:OnMenuButtonActivated(MenuButton.Name)
 			end,
 			
@@ -100,10 +100,6 @@ function MainMenu:Load()
 		}))
 	end
 
-	
-
-	
-	
 	ScreenGui.Parent = LiveScreenGuis
 	
 	self.ScreenGui = ScreenGui

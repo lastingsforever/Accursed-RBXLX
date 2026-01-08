@@ -1,17 +1,14 @@
-export type SlotMetaData = {
-	
-}
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
-export type CharacterSlot = {
-	HairColor : {R : number, G : number, B : number},
-	
-}
+-- Modules
+local SharedTypes = require(ReplicatedStorage.ReplicatedCore.Shared.SharedTypes)
+local ServerCore = ServerScriptService.ServerCore
+local ProfileStore = require(ServerCore.Dependencies.Data.ProfileStore)
 
-export type Data = {
-	CharacterSlots : {[number] : CharacterSlot},
-}
-
-
+-- Types
+export type Profile = ProfileStore.Profile<SharedTypes.Data>
 
 local ServerTypes = {}
 return ServerTypes

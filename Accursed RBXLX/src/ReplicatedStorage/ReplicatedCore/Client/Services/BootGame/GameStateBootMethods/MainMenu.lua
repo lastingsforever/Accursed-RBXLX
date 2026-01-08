@@ -9,11 +9,13 @@ local ReplicatedCore = ReplicatedStorage.ReplicatedCore
 local SharedDependencies = ReplicatedCore.Shared.Dependencies
 local ClientServices = ReplicatedCore.Client.Services
 
+local Packets = require(SharedDependencies.Packets)
 local Handshake = require(SharedDependencies.Handshake)
 local ScreenGuiService = require(ClientServices.ScreenGuiService)
 
 -- Types
 local ClientTypes = require(ReplicatedCore.Client.ClientTypes)
+local SharedTypes = require(ReplicatedCore.Shared.SharedTypes)
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -31,15 +33,11 @@ return function()
 	local MainMenu  = ScreenGuiService.CreateScreen("MainMenu") :: ClientTypes.MainMenu
 	local CharacterSlots = ScreenGuiService.CreateScreen("CharacterSlots") :: ClientTypes.CharacterSlots
 	
-	--MainMenu:Load()
-	--CharacterSlots:Load()
+	MainMenu:Load()
+	CharacterSlots:Load()
 	
 	
 	MainMenu:Open()
 	FirstGuiEffects.End()
-	
-		
-
-	
 	
 end

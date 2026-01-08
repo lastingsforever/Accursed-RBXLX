@@ -249,22 +249,23 @@ function GuiPatterns.HoverScale(GuiObject: GuiObject, Config: HoverScaleConfig?)
 	local BrightenOnHover = Settings.BrightenOnHover or false
 	local ColorSettings = ParseTweenConfig(Settings.ColorTweenInfo, DEFAULT_COLOR_DURATION)
 
-	local OriginalColor = GuiObject.BackgroundColor3
-	
 	GuiEffects.EnsureOriginSize(GuiObject)
-	
+
+	if BrightenOnHover then
+		GuiEffects.EnsureOriginColors(GuiObject)
+	end
+
 	local Connection = GuiInput.OnHover(GuiObject,
 		function()
 			GuiEffects.IncreaseSize(GuiObject, Scale, TweenSettings)
 			if BrightenOnHover then
-				local BrightColor = GuiEffects.BrightenColor(OriginalColor)
-				GuiEffects.TweenColor(GuiObject, BrightColor, false, ColorSettings.Duration)
+				GuiEffects.BrightenObject(GuiObject, ColorSettings.Duration)
 			end
 		end,
 		function()
 			GuiEffects.ReturnSizeToOrigin(GuiObject, TweenSettings)
 			if BrightenOnHover then
-				GuiEffects.TweenColor(GuiObject, OriginalColor, false, ColorSettings.Duration)
+				GuiEffects.RestoreColors(GuiObject, ColorSettings.Duration)
 			end
 		end
 	)
@@ -329,8 +330,15 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 	local NoScale = Settings.NoScale or false
 
 	local Input: GuiObject = InputButton or GuiObject
-	local OriginalColor = Input.BackgroundColor3
 	local Connections: {GuiInput.InputConnection} = {}
+
+	if not NoScale then
+		GuiEffects.EnsureOriginSize(GuiObject)
+	end
+
+	if BrightenOnHover then
+		GuiEffects.EnsureOriginColors(Input)
+	end
 
 	local function HandleEnter()
 		if not NoScale then
@@ -338,8 +346,7 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 		end
 
 		if BrightenOnHover then
-			local BrightColor = GuiEffects.BrightenColor(OriginalColor)
-			GuiEffects.TweenColor(Input, BrightColor, false, ColorSettings.Duration)
+			GuiEffects.BrightenObject(Input, ColorSettings.Duration)
 		end
 
 		if OnHoverCallback then
@@ -353,7 +360,7 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 		end
 
 		if BrightenOnHover then
-			GuiEffects.TweenColor(Input, OriginalColor, false, ColorSettings.Duration)
+			GuiEffects.RestoreColors(Input, ColorSettings.Duration)
 		end
 
 		if OnLeaveCallback then
@@ -372,7 +379,7 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 			OriginSize.Y.Offset * PressScale
 		)
 
-		Tweener.Do(GuiObject, { Size = SquishSize }, PressTweenSettings)
+		Tweener.Do(GuiObject, {Size = SquishSize}, PressTweenSettings)
 	end
 
 	local function HandleRelease()
@@ -388,11 +395,7 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 			task.defer(HandleLeave)
 		end
 	end
-	
-	if not NoScale then
-		GuiEffects.EnsureOriginSize(GuiObject)
-	end
-	
+
 	if DeviceType == "PC" then
 		table.insert(Connections, GuiInput.OnHover(Input, HandleEnter, HandleLeave))
 	else
@@ -405,21 +408,17 @@ function GuiPatterns.BasicInput(GuiObject: GuiObject, InputButton: GuiButton?, C
 		OnDown = HandlePress,
 		OnUp = HandleRelease,
 	}))
-	
+
 	if Input:IsA("GuiButton") then
 		if OnActivated then
 			table.insert(Connections, GuiInput.OnClick(Input :: GuiButton, function()
 				OnActivated()
 			end))
 		end
-	elseif OnActivated then
-		warn("GuiPatterns.BasicInput: OnActivated provided but Input is not a GuiButton")
 	end
 
 	return CreateCleanup(Connections, nil, nil)
 end
-
-
 function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): PatternCleanup
 	local Settings = Config or {} :: ButtonConfig
 	local OnClick = Settings.OnClick
@@ -432,11 +431,10 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 	local PopOnClick = if Settings.PopOnClick == nil then true else Settings.PopOnClick
 
 	local UseHoverFrames = Settings.UseHoverFrames or false
-	local DefaultFrame = Settings.DefaultFrame or GuiButton:FindFirstChild("Default") :: Frame?
-	local HoveredFrame = Settings.HoveredFrame or GuiButton:FindFirstChild("Hovered") :: Frame?
+	local DefaultFrame = Settings.DefaultFrame or GuiButton:FindFirstChild("Default") :: GuiObject?
+	local HoveredFrame = Settings.HoveredFrame or GuiButton:FindFirstChild("Hovered") :: GuiObject?
 	local HoverFrameSettings = ParseTweenConfig(Settings.HoverFrameTweenInfo, DEFAULT_HOVER_DURATION)
 
-	local OriginalColor = GuiButton.BackgroundColor3
 	local IsPressed = false
 	local Connections: {GuiInput.InputConnection} = {}
 
@@ -444,7 +442,13 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 
 	local SkipBackgroundTransparency: {[Instance]: boolean} = {}
 
-	local function CacheTransparentBackgrounds(Frame: Frame | ImageLabel | ImageButton)
+	GuiEffects.EnsureOriginSize(GuiButton)
+
+	if BrightenOnHover and not HasHoverFrames then
+		GuiEffects.EnsureOriginColors(GuiButton)
+	end
+
+	local function CacheTransparentBackgrounds(Frame: GuiObject)
 		if not Frame then return end
 
 		local IsImage = Frame:IsA("ImageLabel") or Frame:IsA("ImageButton")
@@ -462,7 +466,7 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 		end
 	end
 
-	local function SetFrameTransparency(Frame: Frame | ImageLabel | ImageButton, Transparency: number, Animate: boolean)
+	local function SetFrameTransparency(Frame: GuiObject, Transparency: number, Animate: boolean)
 		if not Frame then return end
 
 		local Properties: {[string]: number} = {}
@@ -521,49 +525,31 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 			end
 		end
 	end
-
-	local function DisableFrameInteraction(Frame: Frame)
-		if not Frame then return end
-
-		if Frame:IsA("GuiObject") then
-			Frame.Active = false
-		end
-
-		for _, Descendant in Frame:GetDescendants() do
-			if Descendant:IsA("GuiObject") then
-				Descendant.Active = false
-			end
-		end
-	end
-
+	
 	if HasHoverFrames then
-		local HoveredFrame = HoveredFrame::Frame
+		local HoveredFrame = HoveredFrame :: Frame
 		
-		CacheTransparentBackgrounds(HoveredFrame :: Frame)
+		CacheTransparentBackgrounds(HoveredFrame :: GuiObject)
 
-		DisableFrameInteraction(DefaultFrame :: Frame)
-		DisableFrameInteraction(HoveredFrame :: Frame)
-
-		HoveredFrame.ZIndex = (DefaultFrame :: Frame).ZIndex + 1
-		SetFrameTransparency(HoveredFrame :: Frame, 1, false)
+		HoveredFrame.ZIndex = (DefaultFrame :: GuiObject).ZIndex + 1
+		SetFrameTransparency(HoveredFrame :: GuiObject, 1, false)
 	end
 
 	local function HandleEnter()
 		if HasHoverFrames then
-			SetFrameTransparency(HoveredFrame :: Frame, 0, true)
+			SetFrameTransparency(HoveredFrame :: GuiObject, 0, true)
 		end
 
 		GuiEffects.IncreaseSize(GuiButton, HoverScale, HoverTweenSettings)
 
 		if BrightenOnHover and not HasHoverFrames then
-			local BrightColor = GuiEffects.BrightenColor(OriginalColor)
-			GuiEffects.TweenColor(GuiButton, BrightColor, false, ColorSettings.Duration)
+			GuiEffects.BrightenObject(GuiButton, ColorSettings.Duration)
 		end
 	end
 
 	local function HandleLeave()
 		if HasHoverFrames then
-			SetFrameTransparency(HoveredFrame :: Frame, 1, true)
+			SetFrameTransparency(HoveredFrame :: GuiObject, 1, true)
 		end
 
 		if not IsPressed then
@@ -571,12 +557,10 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 		end
 
 		if BrightenOnHover and not HasHoverFrames then
-			GuiEffects.TweenColor(GuiButton, OriginalColor, false, ColorSettings.Duration)
+			GuiEffects.RestoreColors(GuiButton, ColorSettings.Duration)
 		end
 	end
-	
-	GuiEffects.EnsureOriginSize(GuiButton)
-	
+
 	if DeviceType == "PC" then
 		table.insert(Connections, GuiInput.OnHover(GuiButton, HandleEnter, HandleLeave))
 	else
@@ -604,7 +588,7 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 			else
 				GuiEffects.ReturnSizeToOrigin(GuiButton, HoverTweenSettings)
 				if BrightenOnHover and not HasHoverFrames then
-					GuiEffects.TweenColor(GuiButton, OriginalColor, false, ColorSettings.Duration)
+					GuiEffects.RestoreColors(GuiButton, ColorSettings.Duration)
 				end
 			end
 		end
@@ -626,6 +610,7 @@ function GuiPatterns.Button(GuiButton: GuiButton, Config: ButtonConfig?): Patter
 
 	return CreateCleanup(Connections, nil, nil)
 end
+
 function GuiPatterns.Toggle(GuiButton: GuiButton, Config: ToggleConfig?): PatternCleanup
 	local Settings = Config or {} :: ToggleConfig
 	local OnToggle = Settings.OnToggle

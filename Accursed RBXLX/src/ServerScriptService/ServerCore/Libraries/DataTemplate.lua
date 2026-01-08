@@ -1,16 +1,28 @@
 --!strict
 -- Services
-local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Modules
-local ServerTypes = require(ServerScriptService.ServerCore.ServerTypes)
+local SharedTypes = require(ReplicatedStorage.ReplicatedCore.Shared.SharedTypes)
 
 -- Types
-export type Data = ServerTypes.Data
+export type Data = SharedTypes.Data
+
 
 -- Variables
-return {
+local DataTemplate : Data = {
+	FirstLoad = true,
 	
-	CharacterSlots = {}
+	CharacterSlotsMeta = {
+		NumberOfSlots = 0,
+		SlotsMeta = {}
+	},
 	
-} :: ServerTypes.Data
+	CharacterSlots = {
+		
+	},
+	
+	
+}
+
+return DataTemplate :: Data

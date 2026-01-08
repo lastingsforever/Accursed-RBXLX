@@ -18,6 +18,8 @@ local SIZE_HOLDER_NAME = "SizeHolder"
 local ORIGIN_SIZE_ATTRIBUTE = "OriginSize"
 local ORIGIN_ZINDEX_ATTRIBUTE = "OriginZIndex"
 local ORIGIN_LAYOUT_ORDER_ATTRIBUTE = "OriginLayoutOrder"
+local ORIGIN_BACKGROUND_COLOR_ATTRIBUTE = "OriginBackgroundColor"
+local ORIGIN_IMAGE_COLOR_ATTRIBUTE = "OriginImageColor"
 
 -- Variables
 local SizeHolderTemplate = Instance.new("Frame")
@@ -223,14 +225,69 @@ function GuiEffects.TweenColor(GuiObject: GuiObject, TargetColor: Color3, IsImag
 	end
 end
 
+function GuiEffects.EnsureOriginColors(GuiObject: GuiObject): ()
+	if not GuiObject:GetAttribute(ORIGIN_BACKGROUND_COLOR_ATTRIBUTE) then
+		GuiObject:SetAttribute(ORIGIN_BACKGROUND_COLOR_ATTRIBUTE, GuiObject.BackgroundColor3)
+	end
+
+	if GuiObject:IsA("ImageLabel") or GuiObject:IsA("ImageButton") then
+		if not GuiObject:GetAttribute(ORIGIN_IMAGE_COLOR_ATTRIBUTE) then
+			GuiObject:SetAttribute(ORIGIN_IMAGE_COLOR_ATTRIBUTE, (GuiObject :: ImageLabel).ImageColor3)
+		end
+	end
+end
+
+function GuiEffects.GetOriginColors(GuiObject: GuiObject): (Color3, Color3?)
+	local OriginBackgroundColor = GuiObject:GetAttribute(ORIGIN_BACKGROUND_COLOR_ATTRIBUTE) :: Color3?
+	local OriginImageColor = GuiObject:GetAttribute(ORIGIN_IMAGE_COLOR_ATTRIBUTE) :: Color3?
+
+	return OriginBackgroundColor or GuiObject.BackgroundColor3, OriginImageColor
+end
+
+function GuiEffects.BrightenObject(GuiObject: GuiObject, Duration: number?): ()
+	GuiEffects.EnsureOriginColors(GuiObject)
+
+	local OriginBackgroundColor, OriginImageColor = GuiEffects.GetOriginColors(GuiObject)
+	local BrightBackgroundColor = BrightenColor(OriginBackgroundColor)
+
+	GuiEffects.TweenColor(GuiObject, BrightBackgroundColor, false, Duration)
+
+	if OriginImageColor then
+		local BrightImageColor = BrightenColor(OriginImageColor)
+		GuiEffects.TweenColor(GuiObject, BrightImageColor, true, Duration)
+	end
+end
+
+function GuiEffects.DarkenObject(GuiObject: GuiObject, Duration: number?): ()
+	GuiEffects.EnsureOriginColors(GuiObject)
+
+	local OriginBackgroundColor, OriginImageColor = GuiEffects.GetOriginColors(GuiObject)
+	local DarkBackgroundColor = DarkenColor(OriginBackgroundColor)
+
+	GuiEffects.TweenColor(GuiObject, DarkBackgroundColor, false, Duration)
+
+	if OriginImageColor then
+		local DarkImageColor = DarkenColor(OriginImageColor)
+		GuiEffects.TweenColor(GuiObject, DarkImageColor, true, Duration)
+	end
+end
+
+function GuiEffects.RestoreColors(GuiObject: GuiObject, Duration: number?): ()
+	local OriginBackgroundColor, OriginImageColor = GuiEffects.GetOriginColors(GuiObject)
+
+	GuiEffects.TweenColor(GuiObject, OriginBackgroundColor, false, Duration)
+
+	if OriginImageColor then
+		GuiEffects.TweenColor(GuiObject, OriginImageColor, true, Duration)
+	end
+end
+
 function GuiEffects.Brighten(GuiObject: GuiObject, Duration: number?)
-	local BrightColor = BrightenColor(GuiObject.BackgroundColor3)
-	GuiEffects.TweenColor(GuiObject, BrightColor, false, Duration)
+	GuiEffects.BrightenObject(GuiObject, Duration)
 end
 
 function GuiEffects.Darken(GuiObject: GuiObject, Duration: number?)
-	local DarkColor = DarkenColor(GuiObject.BackgroundColor3)
-	GuiEffects.TweenColor(GuiObject, DarkColor, false, Duration)
+	GuiEffects.DarkenObject(GuiObject, Duration)
 end
 
 function GuiEffects.BrightenColor(Color: Color3): Color3
