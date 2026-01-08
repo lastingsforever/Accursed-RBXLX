@@ -988,3 +988,147 @@ UpdateDeviceType()
 UserInputService:GetPropertyChangedSignal("TouchEnabled"):Connect(UpdateDeviceType)
 
 return GuiPatterns
+
+
+--[[ API Usage:
+
+The module automatically detects whether the user is on PC or mobile and adjusts behavior accordingly. On PC, hover effects trigger on mouse enter. 
+On mobile, hover effects trigger on touch down and clear on touch up.
+
+Understanding the Config System
+Every pattern function accepts a configuration table. Most fields have sensible defaults, so you only need to specify what you want to customize:
+
+GuiPatterns.Button(MyButton, {
+    OnClick = function()
+        print("Clicked!")
+    end,
+    HoverScale = 1.15,
+    -- Everything else uses defaults
+})
+
+local Cleanup = GuiPatterns.Button(PlayButton, {
+    OnClick = function()
+        StartGame()
+    end,
+    HoverScale = 1.1,
+    PressScale = 0.95,
+    BrightenOnHover = true,
+    PopOnClick = true, The PopOnClick option creates a satisfying bounce effect when clicked.
+})
+
+local Cleanup = GuiPatterns.BasicInput(ContainerFrame, InputButton, {
+    HoverScale = 1.1,
+    PressScale = 0.95,
+    BrightenOnHover = true,
+    OnActivated = function()
+        print("Activated!")
+    end,
+    OnHover = function()
+        print("Started hovering")
+    end,
+    OnLeave = function()
+        print("Stopped hovering")
+    end,
+    NoScale = false,
+})
+
+local Cleanup = GuiPatterns.Toggle(SoundToggle, {
+    OnToggle = function(IsActive)
+        SoundEnabled = IsActive
+    end,
+    ActiveColor = Color3.new(0.4, 0.8, 0.4),
+    InactiveColor = Color3.new(0.5, 0.5, 0.5),
+    ActiveScale = 1.1,
+    InactiveScale = 1,
+    InitialState = true,
+})
+
+local Result = GuiPatterns.Switch(ToggleButton, InnerCircle, {
+    OnPosition = UDim2.fromScale(0.75, 0.5),
+    OffPosition = UDim2.fromScale(0.25, 0.5),
+    OnColor = Color3.new(0.2, 1, 0.2),
+    OffColor = Color3.new(1, 0.2, 0.2),
+    InitialState = false,
+    DebounceTime = 0.5,
+})
+-- The result provides state access and control
+print(Result.State) -- "Off"
+Result.SetState(true) -- Programmatically change state
+Result.Changed:Connect(function(NewState)
+    print("Switch changed to", NewState)
+end)
+Result.Destroy() -- Clean up when done
+
+Creates a group of buttons where only one can be selected at a time:
+local Buttons = {OptionA, OptionB, OptionC}
+local Cleanup = GuiPatterns.SelectableGroup(Buttons, function(Index, Button)
+    SelectedOption = Index
+    print("Selected option", Index)
+end, {
+    ActiveColor = Color3.new(0.2, 0.7, 1),
+    ActiveScale = 1.05,
+    InitialIndex = 1,
+})
+
+Cycles through a list of values when clicked:
+local Result = GuiPatterns.ListToggle(DifficultyButton, {"Easy", "Medium", "Hard"}, {
+    UpdateText = true, -- Automatically updates button text
+    InitialValue = "Medium",
+})
+
+Result.Changed:Connect(function(NewValue)
+    Difficulty = NewValue
+end)
+
+-- Manual control
+Result.SetIndex(3) -- Set to "Hard"
+print(Result.CurrentValue) -- "Hard"
+print(Result.CurrentIndex) -- 3
+
+Shows a tooltip after hovering for a delay:
+local Cleanup = GuiPatterns.Tooltip(HoverTarget, TooltipFrame, {
+    ShowDelay = 0.5,
+    FadeTweenInfo = 0.25,
+})
+The tooltip frame should start with Visible = false. The pattern handles showing, hiding, and fading automatically.
+
+local Result = GuiPatterns.NumberInput(QuantityBox, {
+    AllowNegatives = false,
+    MinValue = 1,
+    MaxValue = 99,
+})
+Result.Changed:Connect(function(NewValue)
+    Quantity = NewValue
+end)
+
+local Result = GuiPatterns.TextInput(NameBox)
+Result.Changed:Connect(function(CurrentText)
+    -- Called on every keystroke while focused
+end)
+Result.Submitted:Connect(function(FinalText, WasEnterPressed)
+    if WasEnterPressed then
+        SubmitName(FinalText)
+    end
+end)
+
+local Cleanup = GuiPatterns.HoverScale(Button, {
+    Scale = 1.1,
+    TweenInfo = 0.15,
+    BrightenOnHover = true,
+})
+
+local Cleanup = GuiPatterns.HoverColor(Button, {
+    HoverColor = Color3.new(0.2, 0.8, 0.2),
+    TweenInfo = 0.2,
+    IsImageColor = false,
+})
+
+local Cleanup = GuiPatterns.HoverTransparency(Panel, {
+    HoverTransparency = 0.3,
+    TweenInfo = 0.25,
+})
+
+
+
+
+]]

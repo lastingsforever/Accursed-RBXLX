@@ -114,3 +114,47 @@ function GuiInput.GetMousePosition(): Vector2
 end
 
 return GuiInput
+
+--[[ API Usage:
+
+.Connect is the most versatile function, offering the ability to connect to all other functions in the api.
+
+local Connection = GuiInput.Connect(MyButton, {
+    OnEnter = function()
+        -- Called when mouse enters or touch begins over the element
+    end,
+    OnLeave = function()
+        -- Called when mouse leaves the element
+    end,
+    OnDown = function()
+        -- Called when mouse button pressed or touch started
+    end,
+    OnUp = function()
+        -- Called when mouse button released or touch ended
+    end,
+    OnClick = function()
+        -- Called when the button is activated (only works on GuiButtons)
+    end,
+})
+
+Then you call Connection:Disconnect() to cleanup.
+
+Then there are these functions:
+
+-- Just hover detection
+GuiInput.OnHover(Element, OnEnterCallback, OnLeaveCallback)
+
+-- Just click detection (requires GuiButton)
+GuiInput.OnClick(Button, OnClickCallback)
+
+-- Just press detection
+GuiInput.OnPress(Element, OnDownCallback, OnUpCallback)
+
+GuiInput.IsHovering checks whether the user is currently hovering over a specific element. 
+This is useful when you need to make decisions based on hover state outside of the callback context:
+
+if GuiInput.IsHovering(MyButton) then
+    -- User is currently over this button
+end
+
+]]

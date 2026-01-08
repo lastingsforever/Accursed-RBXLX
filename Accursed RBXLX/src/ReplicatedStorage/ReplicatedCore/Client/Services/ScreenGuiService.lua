@@ -142,3 +142,136 @@ function ScreenGuiService.GetStack(): {string}
 end
 
 return ScreenGuiService
+
+
+--[[ API Usage:
+
+ScreenGuiService wraps ScreenGuiController and handles screen creation. This is what you should use in your game code.
+
+-- Get an existing screen (returns nil if not created)
+local Screen = ScreenGuiService.Get("MainMenu")
+
+-- Create a screen (loads it if not already loaded)
+local Screen = ScreenGuiService.CreateScreenGui("MainMenu")
+
+-- Create all screens in a folder
+local Screens = ScreenGuiService.CreateAllFromFolder("CommonUI")
+
+
+
+Opening and Closing
+The service exposes all controller functions:
+ScreenGuiService.Open("MainMenu")
+ScreenGuiService.Close("MainMenu")
+ScreenGuiService.Toggle("Inventory")
+ScreenGuiService.Push("Settings")
+ScreenGuiService.Pop()
+ScreenGuiService.CloseAll()
+
+Pattern 1: Menu Button Setup
+function MenuScreen:Load()
+    local ButtonContainer = self.ScreenGui.Buttons
+    
+    for _, Button in ButtonContainer:GetChildren() do
+        if Button:IsA("GuiButton") then
+            self._janitor:Add(GuiPatterns.Button(Button, {
+                OnClick = function()
+                    self:HandleButtonClick(Button.Name)
+                end,
+            }))
+        end
+    end
+end
+function MenuScreen:HandleButtonClick(ButtonName)
+    if ButtonName == "Play" then
+        ScreenGuiService.Push("GameSelect")
+    elseif ButtonName == "Settings" then
+        ScreenGuiService.Push("Settings")
+    elseif ButtonName == "Quit" then
+        -- Handle quit
+    end
+end
+
+Pattern 2: Panel Show/Hide with Fade
+function InventoryScreen:Load()
+    self.TransparencyOrigin = GuiEffects.GenerateTransparencyOrigin(self.ScreenGui.Panel)
+    GuiEffects.SetAllTransparency(self.ScreenGui.Panel, 1)
+end
+
+function InventoryScreen:Open()
+    self.ScreenGui.Parent = PlayerGui
+    GuiEffects.FadeToOrigin(self.TransparencyOrigin, {Duration = 0.3})
+    self.IsOpen = true
+end
+
+function InventoryScreen:Close()
+    local Tweens = GuiEffects.FadeAllOut(self.ScreenGui.Panel, {Duration = 0.3})
+    Tweener.Sequence(Tweens, function()
+        self.ScreenGui.Parent = LiveScreenGuis
+    end)
+    self.IsOpen = false
+end
+
+Pattern 3: Settings Toggle Group
+function SettingsScreen:Load()
+    local QualityButtons = {
+        self.ScreenGui.Quality.Low,
+        self.ScreenGui.Quality.Medium,
+        self.ScreenGui.Quality.High,
+    }
+    
+    self._janitor:Add(GuiPatterns.SelectableGroup(QualityButtons, function(Index)
+        Settings.Quality = Index
+    end, {
+        InitialIndex = Settings.Quality,
+        ActiveColor = Color3.fromRGB(100, 200, 255),
+    }))
+end
+
+Pattern 5: Dynamic List Items
+When creating scrolling lists with dynamic content:
+function InventoryScreen:PopulateItems(Items)
+    -- Clear existing
+    for _, Child in self.ItemContainer:GetChildren() do
+        if Child:IsA("GuiButton") then
+            Child:Destroy()
+        end
+    end
+    
+    self._openJanitor:Cleanup() -- Clear old connections
+    
+    for _, Item in Items do
+        local ItemButton = self.ItemTemplate:Clone()
+        ItemButton.Name = Item.Id
+        ItemButton.ItemName.Text = Item.Name
+        ItemButton.Parent = self.ItemContainer
+        
+        self._openJanitor:Add(GuiPatterns.Button(ItemButton, {
+            OnClick = function()
+                self:SelectItem(Item)
+            end,
+        }))
+    end
+end
+
+Pattern 6: Confirmation Dialog
+function ShowConfirmation(Message, OnConfirm, OnCancel)
+    local Dialog = ScreenGuiService.Push("ConfirmDialog")
+    Dialog.ScreenGui.Message.Text = Message
+    
+    Dialog._openJanitor:Add(GuiPatterns.Button(Dialog.ScreenGui.Confirm, {
+        OnClick = function()
+            ScreenGuiService.Pop()
+            if OnConfirm then OnConfirm() end
+        end,
+    }))
+    
+    Dialog._openJanitor:Add(GuiPatterns.Button(Dialog.ScreenGui.Cancel, {
+        OnClick = function()
+            ScreenGuiService.Pop()
+            if OnCancel then OnCancel() end
+        end,
+    }))
+end
+
+]]

@@ -298,3 +298,45 @@ function GuiEffects.ClearSizeState(GuiObject: GuiObject): ()
 end
 
 return GuiEffects
+
+
+--[[ API Usage:
+
+
+
+GuiEffects.IncreaseSize(Button, 1.2, {Duration = 0.2})
+
+GuiEffects.ReturnSizeToOrigin(Button, {Duration = 0.2})
+
+DecreaseSize shrinks an element to a specific size, optionally returning to origin afterward:
+GuiEffects.DecreaseSize(Button, SmallerUDim2, true, {Duration = 0.1})
+
+Pop creates a quick scale-up-then-down animation:
+GuiEffects.Pop(Button, 1.15, 0.2)
+
+Shake creates a random position shake effect:
+GuiEffects.Shake(Button, 5, 0.2) -- 5 pixels intensity, 0.2 seconds duration
+
+TweenColor animates the color of an element:
+GuiEffects.TweenColor(Button, Color3.new(1, 0, 0), false, 0.3)
+The third argument specifies whether to tween ImageColor3 (true) or BackgroundColor3 (false).
+
+GuiEffects.Brighten(Button, 0.2) -- Duration
+GuiEffects.Darken(Button, 0.2)
+
+GenerateTransparencyOrigin captures the current transparency state of an element and all its descendants:
+local OriginTable = GuiEffects.GenerateTransparencyOrigin(Panel)
+
+SetAllTransparency instantly sets all transparency properties to a value:
+GuiEffects.SetAllTransparency(Panel, 1) -- Make everything invisible
+
+FadeAllIn and FadeAllOut animate all transparency properties:
+GuiEffects.FadeAllOut(Panel, {Duration = 0.3})
+GuiEffects.FadeAllIn(Panel)
+
+FadeToOrigin restores transparencies to their captured state:
+GuiEffects.FadeToOrigin(OriginTable, {Duration = 0.3})
+
+
+
+]]

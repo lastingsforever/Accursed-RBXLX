@@ -264,3 +264,55 @@ function ScreenGuiController.Pop(): string?
 end
 
 return ScreenGuiController
+
+
+--[[ API Usage:
+
+ScreenGuiController manages the state of screen GUIs without knowing how to create them. It tracks which screens are open, which is focused, and maintains a navigation stack.
+
+Core Concepts
+OpenScreenSet tracks which screens are currently open by name.
+ScreenStack maintains a stack of screen names for navigation.
+FocusedScreenName tracks which screen currently has focus.
+
+Opening and Closing Screens
+-- Open a screen with default options
+ScreenGuiController.Open("Inventory")
+
+-- Open exclusively (closes all other screens first)
+ScreenGuiController.Open("Settings", {Exclusive = true})
+
+-- Open without focusing
+ScreenGuiController.Open("HUD", {Focus = false})
+
+-- Close a specific screen
+ScreenGuiController.Close("Inventory")
+
+-- Close all screens
+ScreenGuiController.CloseAll()
+
+-- Toggle open/closed state
+ScreenGuiController.Toggle("Map")
+
+
+For menus with back navigation:
+-- Push pushes onto the stack and focuses
+ScreenGuiController.Push("MainMenu")
+ScreenGuiController.Push("Options")
+ScreenGuiController.Push("AudioSettings")
+
+-- Pop removes the top screen and focuses the one below
+ScreenGuiController.Pop() -- Closes AudioSettings, focuses Options
+ScreenGuiController.Pop() -- Closes Options, focuses MainMenu
+
+Querying State
+local IsOpen = ScreenGuiController.IsOpen("Inventory")
+local FocusedName = ScreenGuiController.GetFocused()
+local AllOpen = ScreenGuiController.GetOpenScreens()
+local CurrentStack = ScreenGuiController.GetStack()
+
+
+
+
+
+]]

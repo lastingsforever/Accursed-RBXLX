@@ -306,3 +306,37 @@ function Tweener.Sequence(Tweens: {Tween}, OnComplete: (() -> ())?)
 end
 
 return Tweener
+
+
+--[[ API Usage:
+
+Tweener.Do is the primary function:
+local MyTween = Tweener.Do(Frame, {
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromScale(0.3, 0.3),
+}, {Duration = 0.5, EasingStyle = Enum.EasingStyle.Quad})
+
+The settings table accepts Duration, EasingStyle, EasingDirection, RepeatCount, Reverses, and DelayTime. You can also pass a number for just the duration, or an actual TweenInfo object.
+
+
+Tweener.Sequence waits for multiple tweens to complete:
+Tweener.Sequence({Tween1, Tween2, Tween3}, function()
+    print("All tweens finished")
+end)
+
+Convenience Functions
+Tweener.Property(Object, "Transparency", 0.5, 0.3)
+Tweener.MoveTo(Part, TargetCFrame, 1)
+Tweener.MoveGui(Frame, UDim2.fromScale(0, 0), 0.5)
+Tweener.Resize(Frame, UDim2.fromScale(0.5, 0.5), 0.3)
+Tweener.FadeBackground(Frame, 0.5, 0.2)
+Tweener.FadeImage(ImageLabel, 0, 0.3)
+Tweener.FadeText(TextLabel, 0, 0.3)
+Tweener.BackgroundColor(Frame, Color3.new(1, 0, 0), 0.3)
+Tweener.TextColor(Label, Color3.new(1, 1, 1), 0.3)
+Tweener.ImageColor(Image, Color3.new(0, 1, 0), 0.3)
+
+
+
+
+]]
