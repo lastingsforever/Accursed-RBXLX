@@ -59,6 +59,12 @@ export type CharacterSlots = {
 	
 } & ScreenGuiTemplate
 
+export type MenuToGameLoading = { 
+	
+	SpinImageTween: Tween,
+	
+} & ScreenGuiTemplate
+
 
 
 local ClientTypes = {}

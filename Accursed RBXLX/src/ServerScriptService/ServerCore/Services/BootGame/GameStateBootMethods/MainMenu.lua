@@ -20,6 +20,8 @@ local PlaceIDs = require(ServerCore.Libraries.PlaceIDs)
 local SharedTypes = require(Shared.SharedTypes)
 local ServerTypes = require(ServerCore.ServerTypes)
 
+local RemoteScreenGuiController = require(Shared.Systems.RemoteScreenGuiController)
+
 
 -- Variables
 local WaitingForSlotSelection = {} :: {[Player] : boolean}
@@ -39,7 +41,12 @@ local function OnSlotSelected(Player: Player, SlotIndex: number)
 	DataService.FirstSlotPopulation(Data, SlotIndex)
 	Data.MostRecentSlot = SlotIndex
 	
-	SafeTeleport(PlaceIDs.MainGame, {Player})
+	local Result = RemoteScreenGuiController.Push(Player, "MenuToGameLoading")
+	if Result.Success then 
+		SafeTeleport(PlaceIDs.MainGame, {Player})
+	else 
+		Player:Kick("Error when attempting to open TeleportLoading gui.")
+	end
 end
 
 

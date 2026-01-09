@@ -15,6 +15,8 @@ local GuiEffects = require(GuiModules:WaitForChild("GuiEffects"))
 local GuiPatterns = require(GuiModules:WaitForChild("GuiPatterns"))
 local Tweener = require(ClientDependencies:WaitForChild("Tweener"))
 
+local RemoteScreenGuiController = require(Shared:WaitForChild("Systems"):WaitForChild("RemoteScreenGuiController"))
+
 -- Types
 export type InputCallbacks = GuiInput.InputCallbacks
 export type InputConnection = GuiInput.InputConnection

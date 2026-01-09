@@ -7,6 +7,7 @@ local ReplicatedCore = ReplicatedStorage:WaitForChild("ReplicatedCore")
 local Client = ReplicatedCore:WaitForChild("Client")
 local ClientDependencies = Client:WaitForChild("Dependencies")
 local Tweener = require(ClientDependencies:WaitForChild("Tweener"))
+local GradientTransparencyTween = require(ClientDependencies:WaitForChild("GradientTransparencyTween"))
 
 -- Types
 export type TweenSettings = Tweener.TweenSettings
@@ -358,6 +359,10 @@ function GuiEffects.ClearSizeState(GuiObject: GuiObject): ()
 	SizeIncreased[GuiObject] = nil
 	SizeIterations[GuiObject] = nil
 	GuiObject:SetAttribute(ORIGIN_SIZE_ATTRIBUTE, nil)
+end
+
+function GuiEffects.GradientTransparencyTween(Gradient: UIGradient, Options: GradientTransparencyTween.GradientTweenOptions): Tween
+	return GradientTransparencyTween.Play(Gradient, Options)
 end
 
 
