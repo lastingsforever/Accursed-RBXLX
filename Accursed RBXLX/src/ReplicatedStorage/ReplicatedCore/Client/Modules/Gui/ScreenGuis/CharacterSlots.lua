@@ -15,7 +15,6 @@ local ClientServices = Client:WaitForChild("Services")
 local ScreenGuiService = require(ClientServices:WaitForChild("ScreenGuiService"))
 local GuiService = require(ClientServices:WaitForChild("GuiService"))
 
-
 -- Types
 local SharedTypes = require(Shared:WaitForChild("SharedTypes"))
 local ClientTypes = require(Client:WaitForChild("ClientTypes"))
@@ -32,6 +31,26 @@ local ScreenGui = ScreenGuiAssets:WaitForChild("CharacterSlots")
 local Container = ScreenGui:WaitForChild("Container")
 local CharacterSlotsHolder = Container:WaitForChild("SlotsHolder")
 local SlotGui = CharacterSlotsHolder:WaitForChild("Slot")
+local MetaInfoTemplate = SlotGui.MetaInfoHolder.MetaInfo
+
+local SelectCharacterSlot = Packets.SelectCharacterSlot
+
+-- Functions
+local function FillSlotInformation(MySlotGui : typeof(SlotGui), CharacterSlotMeta: SharedTypes.SlotMeta?)
+	if not CharacterSlotMeta then warn("Invalid CharacterSlotMeta") warn(CharacterSlotMeta) return end 
+	
+	local NameMetaInfoGui = MetaInfoTemplate:Clone()
+	local PlaytimeInfoGui = MetaInfoTemplate:Clone()
+	
+	NameMetaInfoGui.Parent = MySlotGui.MetaInfoHolder
+	NameMetaInfoGui.Index.Text = "Name"
+	NameMetaInfoGui.Value.Text = CharacterSlotMeta.FirstName .. " " .. CharacterSlotMeta.LastName
+	
+	PlaytimeInfoGui.Parent = MySlotGui.MetaInfoHolder
+	PlaytimeInfoGui.Index.Text = "Playtime"
+	PlaytimeInfoGui.Value.Text = CharacterSlotMeta.TimePlayed
+	
+end
 
 -- Object
 local CharacterSlots = {}
@@ -90,8 +109,10 @@ function CharacterSlots:Load()
 	if not ScreenGui or not ScreenGui:IsA("ScreenGui") then error("Unable to find ScreenGui with name: " .. tostring(self.Name)) return end 
 	
 	
-	local CharacterSlotsMeta = Packets.FetchCharacterSlotsMeta:Fire()
+	local CharacterSlotsMeta = Packets.FetchCharacterSlotsMeta:Fire() :: SharedTypes.CharacterSlotsMeta
 	if not CharacterSlotsMeta then error("Unable to fetch character slots meta.") return end 
+	
+	MetaInfoTemplate.Parent = LiveScreenGuis
 	
 	self.CharacterSlotsMeta = CharacterSlotsMeta
 	self:InitBackButton()
@@ -121,12 +142,12 @@ function CharacterSlots:InitSlots()
 	end
 end
 
-function CharacterSlots:BuildSlotGui(SlotIndex: number, SlotInformation: SharedTypes.SlotMeta?) 
+function CharacterSlots:BuildSlotGui(SlotIndex: number, SlotMeta: SharedTypes.SlotMeta?) 
 	local self = self :: CharacterSlots
 	local MySlotGui = self._janitor:Add(SlotGui:Clone(), "Destroy")
 	
 	
-	if not SlotInformation then
+	if not SlotMeta then
 		-- Robux
 		-- This is the default behaviour. 
 		GuiService.Button(MySlotGui.PurchaseSlot, {
@@ -149,7 +170,7 @@ function CharacterSlots:BuildSlotGui(SlotIndex: number, SlotInformation: SharedT
 		GuiService.Button(MySlotGui.Select, {
 			OnClick = function() 
 				-- Fire server to use slot.
-				
+				SelectCharacterSlot:Fire(SlotIndex)
 			end,
 
 			BrightenOnHover = true,
@@ -166,12 +187,10 @@ function CharacterSlots:BuildSlotGui(SlotIndex: number, SlotInformation: SharedT
 		BrightenOnHover = true,
 	})
 	
+	FillSlotInformation(MySlotGui, SlotMeta)
+	
 	MySlotGui.LayoutOrder = SlotIndex
 	MySlotGui.Parent = CharacterSlotsHolder
-end
-
-function CharacterSlots:InitSlot(SlotInformation)
-	
 end
 
 function CharacterSlots:InitBackButton()

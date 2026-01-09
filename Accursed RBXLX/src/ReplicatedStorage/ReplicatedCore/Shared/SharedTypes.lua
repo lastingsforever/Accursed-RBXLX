@@ -49,6 +49,7 @@ export type CharacterSlot = {
 
 export type Data = {
 	FirstLoad : boolean,
+	MostRecentSlot : number,
 	
 	CharacterSlots : {[number] : CharacterSlot},
 	CharacterSlotsMeta : CharacterSlotsMeta,

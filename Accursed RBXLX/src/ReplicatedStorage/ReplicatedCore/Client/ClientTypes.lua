@@ -52,10 +52,10 @@ export type CharacterSlots = {
 	
 	CharacterSlotsMeta: SharedTypes.CharacterSlotsMeta?,
 	
-	BuildSlotGui: (self: CharacterSlots, SlotIndex: number, SlotInformation: SharedTypes.SlotMeta?) -> nil,
-	
 	InitBackButton: (self: CharacterSlots) -> nil,
+	
 	InitSlots: (self: CharacterSlots) -> nil,
+	BuildSlotGui: (self: CharacterSlots, SlotIndex: number, SlotInformation: SharedTypes.SlotMeta?) -> nil,
 	
 } & ScreenGuiTemplate
 

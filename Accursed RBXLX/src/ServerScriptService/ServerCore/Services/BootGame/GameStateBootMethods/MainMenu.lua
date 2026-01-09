@@ -14,12 +14,37 @@ local Packets = require(SharedDependencies.Packets)
 
 local DataService = require(ServerCore.Services.DataService)
 local Handshake = require(SharedDependencies.Handshake)
+local SafeTeleport = require(ServerCore.Dependencies.SafeTeleport)
+local PlaceIDs = require(ServerCore.Libraries.PlaceIDs)
+
 local SharedTypes = require(Shared.SharedTypes)
 local ServerTypes = require(ServerCore.ServerTypes)
 
+
+-- Variables
+local WaitingForSlotSelection = {} :: {[Player] : boolean}
+
 -- Functions
-local function OnPlayerLeaving(Player: Player)
+local function OnSlotSelected(Player: Player, SlotIndex: number)
+	if not WaitingForSlotSelection[Player] then return end
+	WaitingForSlotSelection[Player] = false
 	
+	local Profile = DataService.GetPlayerProfile(Player) :: ServerTypes.Profile
+	if not Profile then return end 
+	local Data = Profile.Data :: SharedTypes.Data
+	
+	if type(Data.CharacterSlots[SlotIndex]) ~= "table" then return end 
+	if Data.CharacterSlots[SlotIndex].FirstName ~= "None" then return end 
+	
+	DataService.FirstSlotPopulation(Data, SlotIndex)
+	Data.MostRecentSlot = SlotIndex
+	
+	SafeTeleport(PlaceIDs.MainGame, {Player})
+end
+
+
+local function OnPlayerLeaving(Player: Player)
+	WaitingForSlotSelection[Player] = nil
 end
 
 local function BootFirstLoad(Player: Player, Data: SharedTypes.Data)
@@ -36,12 +61,10 @@ local function BootPlayer(Player : Player)
 	local Data = Profile.Data :: SharedTypes.Data
 	if Data.FirstLoad then BootFirstLoad(Player, Data) end
 	
+	WaitingForSlotSelection[Player] = true
+	
 	local Success = Handshake.Player(Player, "PlayerFirstLoad", 30)
 	if not Success then Player:Kick("Unable to load within 30 seconds.") return end 
-	
-	
-	
-	
 	
 	
 	--[[
@@ -55,19 +78,16 @@ local function BootPlayer(Player : Player)
 	
 	ggs just fill that shit in if its needed and let them move on ggs ezzz
 	
-	
 	]]
-	
-	
 end
 
 -- Script
 return function()
 	Players.PlayerAdded:Connect(BootPlayer)
 	Players.PlayerRemoving:Connect(OnPlayerLeaving)
+	Packets.SelectCharacterSlot.OnServerEvent:Connect(OnSlotSelected)
 	
 	for _, Player in pairs(Players:GetPlayers()) do 
 		BootPlayer(Player)
 	end
-	
 end

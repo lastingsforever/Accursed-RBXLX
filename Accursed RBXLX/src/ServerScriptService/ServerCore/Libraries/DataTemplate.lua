@@ -12,6 +12,7 @@ export type Data = SharedTypes.Data
 -- Variables
 local DataTemplate : Data = {
 	FirstLoad = true,
+	MostRecentSlot = 0,
 	
 	CharacterSlotsMeta = {
 		NumberOfSlots = 0,

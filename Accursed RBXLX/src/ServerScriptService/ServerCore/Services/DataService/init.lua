@@ -6,19 +6,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Modules
 local ServerCore = ServerScriptService.ServerCore
 local DataDependencies = ServerCore.Dependencies.Data
-
 local ReplicatedCore = ReplicatedStorage.ReplicatedCore
 local Shared = ReplicatedCore.Shared 
 
+local Packets = require(Shared.Dependencies.Packets)
+
 local ProfileStore = require(DataDependencies.ProfileStore)
 local PlayerProfileLoader = require(DataDependencies.PlayerProfileLoader)
-local Packets = require(Shared.Dependencies.Packets)
 local CharacterSlotPopulator = require(script.CharacterSlotPopulator)
-local SharedTypes = require(Shared.SharedTypes)
-local ServerTypes = require(ServerCore.ServerTypes)
 
 -- Types
-
+local SharedTypes = require(Shared.SharedTypes)
+local ServerTypes = require(ServerCore.ServerTypes)
 
 -- Variables
 local DataService = {}
@@ -43,6 +42,7 @@ end
 
 function DataService.GetPlayerProfile(Player : Player)
 	
+	return PlayerProfileLoader.GetProfile(Player)
 end
 
 

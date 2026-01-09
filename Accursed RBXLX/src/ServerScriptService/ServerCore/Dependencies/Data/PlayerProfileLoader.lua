@@ -3,6 +3,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Modules
 local ProfileStore = require(script.Parent.ProfileStore)
@@ -10,6 +11,8 @@ local ProfileTemplate = require(ServerScriptService.ServerCore.Libraries.DataTem
 local DataErrorNotifier = require(script.Parent.DataErrorNotifier) :: (string) -> ()
 local ProfileReleaser = require(script.Parent.ProfileReleaser)
 local YieldForProfileStore = require(script.Parent.YieldForProfileStore)
+local ServerTypes = require(ServerScriptService.ServerCore.ServerTypes)
+local SharedTypes = require(ReplicatedStorage.ReplicatedCore.Shared.SharedTypes)
 
 -- Types
 type LoadStatus = "Loading" | "Loaded" | "Failed"
@@ -110,11 +113,11 @@ local function OnPlayerRemoving(Player: Player)
 	LoadStateByPlayer[Player] = nil
 end
 
-function PlayerProfileLoader.GetProfile(Player: Player)
+function PlayerProfileLoader.GetProfile(Player: Player) : ServerTypes.Profile?
 	return ActiveProfilesByPlayer[Player]
 end
 
-function PlayerProfileLoader.GetData(Player: Player)
+function PlayerProfileLoader.GetData(Player: Player) : SharedTypes.Data?
 	local ActiveProfile = ActiveProfilesByPlayer[Player]
 	if ActiveProfile == nil then return nil end
 	
@@ -125,7 +128,7 @@ function PlayerProfileLoader.IsLoaded(Player: Player): boolean
 	return ActiveProfilesByPlayer[Player] ~= nil
 end
 
-function PlayerProfileLoader.WaitForProfile(Player: Player): (boolean, any?)
+function PlayerProfileLoader.WaitForProfile(Player: Player): (boolean, ServerTypes.Profile?)
 	local LoadState = LoadStateByPlayer[Player]
 	if LoadState == nil then SetLoadState(Player, "Loading", nil) end
 

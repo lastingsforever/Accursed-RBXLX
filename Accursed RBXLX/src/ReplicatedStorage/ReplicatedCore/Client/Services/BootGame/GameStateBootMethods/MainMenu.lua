@@ -36,7 +36,6 @@ return function()
 	MainMenu:Load()
 	CharacterSlots:Load()
 	
-	
 	MainMenu:Open()
 	FirstGuiEffects.End()
 	
